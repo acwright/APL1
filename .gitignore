@@ -22,4 +22,6 @@ fp-info-cache
 *.dsn
 *.ses
 
+# Other
 *.DS_Store
+ROM

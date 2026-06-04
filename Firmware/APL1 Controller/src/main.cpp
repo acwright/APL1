@@ -9,7 +9,10 @@
 #define PA_DATA_MASK    0x7F
 #define PA_STROBE_BIT   7
 
-// PORTB  PB0-6 = display data from PIA; PB7 = DA (active-low, display available)
+// PORTB  PB0-6 = display data from PIA; PB7 = DA (display available)
+//        The PIA CB2 handshake output is active-LOW, but it passes through an
+//        external 74HC04 inverter (U1) before reaching PB7, so at the ATmega
+//        DA is active-HIGH: PB7 HIGH = 6502 has written a char (DA asserted).
 #define PB_DISP_MASK    0x7F
 #define PB_DA_BIT       7
 
@@ -74,6 +77,18 @@ static const uint8_t PROGMEM ps2_shifted[128] = {
 static volatile uint8_t ps2_buf[PS2_BUF_SIZE];
 static volatile uint8_t ps2_head = 0;          // ISR writes here
 static volatile uint8_t ps2_tail = 0;          // main reads here
+
+// ---------------------------------------------------------------------------
+// Throttle ("slow") mode
+//   Toggled at runtime by Ctrl-T (0x14) over serial.
+//   FALSE = full speed (UART-buffered, 6502 barely waits on the DA flag).
+//   TRUE  = emulate the original Apple-1 terminal: before clearing the DA
+//           flag we keep it asserted for SLOW_CHAR_DELAY_MS, which forces the
+//           6502 to spin in WozMon's `BIT DSP / BMI ECHO` loop just as it did
+//           against the real video hardware (~60 characters/second).
+// ---------------------------------------------------------------------------
+#define SLOW_CHAR_DELAY_MS 16                  // ~60 chars/sec, original feel
+static bool slowMode = false;
 
 // ---------------------------------------------------------------------------
 // Phase 3 – putDisplayChar()  (video buffer hook deferred)
@@ -163,9 +178,11 @@ static void processPS2(uint8_t sc) {
             if (sc == 0x14)               { mods |=  0x02; return; }  // L Ctrl
             if (sc == 0x11)               { mods |=  0x04; return; }  // L Alt
             if (sc == 0x58) return;                                    // Caps Lock: ignored
-            // Ctrl+L -> clear screen; Ctrl+\ -> reset 6502 (consume, do not forward)
+            // Ctrl+L -> clear screen; Ctrl+\ -> reset 6502; Ctrl+T -> toggle
+            // throttle (consume, do not forward)
             if (sc == 0x4B && (mods & 0x02)) { clearScreen(); return; }
             if (sc == 0x5D && (mods & 0x02)) { doReset();     return; }
+            if (sc == 0x2C && (mods & 0x02)) { slowMode = !slowMode; return; }
             {
                 uint8_t ascii = (sc < 128)
                     ? ((mods & 0x01)
@@ -224,9 +241,11 @@ void setup() {
     DDRA  = 0x00;
     PORTA = 0x00;
 
-    // --- PORTB: all inputs, no pullups (PIA drives these lines) ---
+    // --- PORTB: all inputs. DA (PB7) is driven by the 74HC04 (U1) output, so no
+    //     pull-up is used: an internal pull-up would force PB7 HIGH and, because
+    //     DA is active-HIGH here, register as a permanent (false) DA assertion.
     DDRB  = 0x00;
-    PORTB = 0x00;
+    PORTB = 0x00;               // no pull-ups; U1 actively drives DA, PIA drives PB0-6
 
     // --- PORTC ---
     // PC0-2 = outputs (video DAC, deferred), drive LOW
@@ -247,11 +266,11 @@ void setup() {
           | (1 << PD_KBDRESB_BIT) | (1 << PD_KBDCLRB_BIT);
     // PD6 (KBDENB) = 0 → enabled; PD7 (RESB) = 0 → 6502 in reset  (0x3C)
 
+    Serial.begin(115200);   // Phase 3 – init UART before releasing 6502 reset
+
     // --- Power-on reset: hold RESB low, then release ---
     delay(10);       // 10 ms – allows supply rails to stabilise
     RESB_RELEASE();  // PD7 HIGH – release 6502 from reset
-
-    Serial.begin(115200);  // Phase 3 – 8N1, no local echo (6502 echoes)
 
     // --- PS/2: INT0 on PD2 falling edge ---
     EICRA = (EICRA & ~0x03) | (1 << ISC01);   // ISC01=1, ISC00=0 = falling edge
@@ -263,13 +282,20 @@ void setup() {
 // ---------------------------------------------------------------------------
 void loop() {
     // --- Phase 3: Display path (PIA -> serial) ---
-    // DA is active-low: PB7 LOW means the 6502 has written a char to the PIA.
-    if (!(PINB & (1 << PB_DA_BIT))) {
+    // DA is active-HIGH at the ATmega (PIA CB2 is active-low but inverted by U1):
+    // PB7 HIGH means the 6502 has written a char to the PIA.
+    if (PINB & (1 << PB_DA_BIT)) {
         uint8_t c = PINB & PB_DISP_MASK;       // read PB0-6 (bit7 = DA, ignored)
+
+        // Throttle mode: leave DA asserted so the 6502 keeps spinning in its
+        // output-polling loop, replicating the original terminal's slow rate.
+        if (slowMode) {
+            delay(SLOW_CHAR_DELAY_MS);
+        }
 
         // Acknowledge: pulse RDAB (CB1) low to clear the DA flag in the PIA
         PC_RDAB_LOW();
-        delayMicroseconds(5);
+        delayMicroseconds(20);  // >1 PIA E-clock cycle; was 5 µs (too marginal)
         PC_RDAB_HIGH();
 
         // Apple-1 always sends 7-bit ASCII; translate bare CR -> CRLF for serial
@@ -285,8 +311,10 @@ void loop() {
     if (Serial.available()) {
         uint8_t c = (uint8_t)Serial.read();
         // Ctrl+L (0x0C FF) -> clear screen; Ctrl+\ (0x1C FS) -> reset 6502
+        // Ctrl+T (0x14 DC4) -> toggle throttle (full speed <-> original feel)
         if (c == 0x0C) { clearScreen(); }
         else if (c == 0x1C) { doReset(); }
+        else if (c == 0x14) { slowMode = !slowMode; }
         else {
             if (c >= 'a' && c <= 'z') c -= 32;  // force uppercase
             c |= 0x80;                           // set bit 7 (Apple-1 style)

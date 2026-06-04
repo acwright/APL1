@@ -38,7 +38,7 @@ Idle state: all Hi-Z inputs (74LS245 drives the bus when not injecting).
 | Pin | Signal | Direction | Description |
 |-----|--------|-----------|-------------|
 | PB0–PB6 | DISP\[6:0\] | Input | 7-bit ASCII from PIA PB0–PB6 |
-| PB7 | DA (active-low) | Input | Display Available – low when 6502 has written a char |
+| PB7 | DA (active-high) | Input | Display Available – high when 6502 has written a char (PIA CB2 inverted by U1) |
 
 ### PORTC – Video DAC + control
 
@@ -52,8 +52,8 @@ Idle state: all Hi-Z inputs (74LS245 drives the bus when not injecting).
 
 | Pin | Signal | Direction | Description |
 |-----|--------|-----------|-------------|
-| PD0 | RXD | Input | UART receive (115 200 8N1) |
-| PD1 | TXD | Output | UART transmit (115 200 8N1) |
+| PD0 | RXD | Input | UART receive (115200 8N1) |
+| PD1 | TXD | Output | UART transmit (115200 8N1) |
 | PD2 | PS2CLK / INT0 | Input w/ pullup | PS/2 clock – triggers INT0 ISR on falling edge |
 | PD3 | PS2DATA | Input w/ pullup | PS/2 data |
 | PD4 | KBDRESB (active-low) | Input w/ pullup | Keyboard reset button – resets 6502 + PS/2 state |
@@ -66,7 +66,7 @@ Idle state: all Hi-Z inputs (74LS245 drives the bus when not injecting).
 ## Features
 
 ### Display path (6502 → serial)
-The 6502 writes a character to PIA Port B and asserts DA (active-low on PIA PB7 via an external inverter). The 1284 detects PB7 LOW, reads PB0–PB6, then pulses RDAB (CB1) low to clear DA. The 7-bit ASCII value is forwarded to the serial port. Bare CR (0x0D) is translated to CR+LF for terminal compatibility.
+The 6502 writes a character to PIA Port B and asserts DA. The PIA's CB2 handshake output is active-low, but an external 74HC04 inverter (U1) feeds it to PB7, so the line is active-**high** at the 1284. The 1284 detects PB7 HIGH, reads PB0–PB6, then pulses RDAB (CB1) low to clear DA. The 7-bit ASCII value is forwarded to the serial port. Bare CR (0x0D) is translated to CR+LF for terminal compatibility.
 
 ### ASCII keyboard pass-through
 The original ASCII keyboard is connected via a 74LS245 buffer (KBDENB, active-low). When no injection is in progress the buffer is enabled and the keyboard drives the PIA directly, preserving full compatibility with the original Apple-1 circuit.
@@ -81,21 +81,30 @@ A custom ISR-based Set-2 decoder handles the 11-bit PS/2 frame (start / 8 data L
 - Caps Lock ignored (Apple-1 is uppercase-only)
 - **Ctrl+L** → clear screen (ANSI ESC\[2J ESC\[H to serial)
 - **Ctrl+\\** → reset 6502 (assert RESB low pulse)
+- **Ctrl+T** → toggle throttle / “slow” mode (original Apple-1 output speed)
 - **Ctrl+Alt+Del** → reset 6502
 
 ### Serial input (PC → 6502)
 Characters received over the serial port are uppercased, bit 7 set, and injected into the PIA via `sendKey()`. Control shortcuts:
 - **Ctrl+L** (0x0C) → clear screen
 - **Ctrl+\\** (0x1C) → reset 6502
+- **Ctrl+T** (0x14) → toggle throttle / “slow” mode
+
+### Throttle (“slow”) mode
+The serial path is far faster than the original Apple-1 because `Serial.write()` is UART-buffered — the 6502 barely waits on the DA flag before emitting the next character. Throttle mode restores the original “feel” by emulating the slow video terminal: before clearing DA, the firmware keeps the flag asserted for `SLOW_CHAR_DELAY_MS` (16 ms ≈ 60 characters/second), forcing the 6502 to spin in WozMon’s `BIT DSP / BMI ECHO` loop just as it did against the real hardware. The throttle is applied via this deliberate delay rather than the baud rate, so it is independent of the 115200 8N1 link.
+
+- Toggled at runtime by **Ctrl+T** from either the serial terminal or the PS/2 keyboard (no reflash needed).
+- Default is **full speed** (`slowMode = false`); the toggle is silent and consumed (not forwarded to the 6502).
+- Tune the rate by editing `SLOW_CHAR_DELAY_MS` in `src/main.cpp` (8 ms ≈ 125 cps, 16 ms ≈ 60 cps, 33 ms ≈ 30 cps).
 
 ### Key injection
 `sendKey(ascii)` disables the 74LS245 (KBDENB HIGH), drives PA0–PA6 with the 7-bit ASCII value, generates a rising edge on PA7 (STROBE → CA1) to latch the key into the PIA, then returns PA to Hi-Z and re-enables the buffer. The entire sequence takes < 30 µs.
 
 ### DA / RDAB handshake
 Matches the original Apple-1 terminal circuit:
-1. 6502 writes character to PIA Port B → DA asserted (active-low) on CB2/PB7
-2. 1284 detects DA, reads the data, pulses RDAB (CB1) low ~5 µs
-3. PIA clears DA; 6502 can write the next character
+1. 6502 writes character to PIA Port B → CB2 goes low; the 74HC04 (U1) inverts it so DA is asserted **high** on PB7
+2. 1284 detects DA high, reads the data, pulses RDAB (CB1) low ~5 µs
+3. PIA clears CB2 (DA returns low); 6502 can write the next character
 
 ### Control buttons
 Both buttons are debounced (20 ms) and active-low:
