@@ -132,6 +132,7 @@ Shared KiCad symbol and footprint libraries used across the APL1 hardware projec
 | R1–R4, R6 | 5 | 1kΩ | 1/8W Resistor |
 | R5 | 1 | 330Ω | 1/8W Resistor |
 | R7, R8 | 2 | 820Ω | 1/8W Resistor |
+| R9 | 2 | 10kΩ | 1/8W Resistor |
 | SW1 | 1 | POWER | SPDT Switch (400MSP1R6BLKM6QE) |
 | U1 | 1 | 74LS04 | Hex Inverter |
 | U2 | 1 | 6502 | 6502 CPU |
