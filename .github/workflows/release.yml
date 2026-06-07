@@ -18,7 +18,7 @@ jobs:
           node-version: 20
 
       - name: Install setuptools (fixes distutils on Python 3.12+)
-        run: pip3 install setuptools
+        run: pip3 install setuptools --break-system-packages
 
       - name: Install dependencies
         working-directory: repo/Firmware/APL1 Terminal
@@ -42,7 +42,7 @@ jobs:
           node-version: 20
 
       - name: Install setuptools (fixes distutils on Python 3.12+)
-        run: pip3 install setuptools
+        run: pip3 install setuptools --break-system-packages
 
       - name: Install dependencies
         working-directory: repo/Firmware/APL1 Terminal
