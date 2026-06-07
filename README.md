@@ -1,6 +1,8 @@
 APL1
 ====
 
+![APL1](./images/APL1.png)
+
 A homebrew **Apple 1** replica built around the **6502** microprocessor, with a modern microcontroller-based terminal that adds PS/2 keyboard and serial input alongside the original ASCII keyboard interface.
 
 ---
