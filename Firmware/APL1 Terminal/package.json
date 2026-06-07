@@ -2,7 +2,10 @@
   "name": "apl1-terminal",
   "version": "0.1.0",
   "description": "APL1 Retro Serial Terminal — Apple-1 faithful terminal emulator",
-  "author": "A.C. Wright",
+  "author": {
+    "name": "A.C. Wright",
+    "email": "aaron.c.wright@icloud.com"
+  },
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
