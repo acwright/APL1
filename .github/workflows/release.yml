@@ -8,40 +8,48 @@ on:
 jobs:
   build-mac:
     runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: Firmware/APL1 Terminal
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: repo
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      - name: Install setuptools (fixes distutils on Python 3.12+)
+        run: pip3 install setuptools
+
       - name: Install dependencies
+        working-directory: repo/Firmware/APL1 Terminal
         run: npm ci
 
       - name: Build and publish (macOS)
+        working-directory: repo/Firmware/APL1 Terminal
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npx electron-builder --mac --publish always
 
   build-linux:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: Firmware/APL1 Terminal
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: repo
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      - name: Install setuptools (fixes distutils on Python 3.12+)
+        run: pip3 install setuptools
+
       - name: Install dependencies
+        working-directory: repo/Firmware/APL1 Terminal
         run: npm ci
 
       - name: Build and publish (Linux)
+        working-directory: repo/Firmware/APL1 Terminal
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npx electron-builder --linux --publish always
