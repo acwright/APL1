@@ -6,7 +6,35 @@ on:
       - 'v*'
 
 jobs:
-  build-mac:
+  build-mac-x64:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install setuptools (fixes distutils on Python 3.12+)
+        run: pip3 install setuptools --break-system-packages
+
+      - name: Install dependencies
+        working-directory: repo/Firmware/APL1 Terminal
+        run: npm ci
+
+      - name: Build (electron-vite)
+        working-directory: repo/Firmware/APL1 Terminal
+        run: npm run build
+
+      - name: Publish (macOS x64)
+        working-directory: repo/Firmware/APL1 Terminal
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: npx electron-builder --mac --x64 --publish always
+
+  build-mac-arm64:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,11 +56,11 @@ jobs:
         working-directory: repo/Firmware/APL1 Terminal
         run: npm run build
 
-      - name: Publish (macOS)
+      - name: Publish (macOS arm64)
         working-directory: repo/Firmware/APL1 Terminal
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: npx electron-builder --mac --publish always
+        run: npx electron-builder --mac --arm64 --publish always
 
   build-linux:
     runs-on: ubuntu-latest
