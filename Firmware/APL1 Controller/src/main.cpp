@@ -221,8 +221,8 @@ static void processPS2(uint8_t sc) {
 // clearScreen() / doReset()  (shared by KBDCLR, PS/2, serial)
 // ---------------------------------------------------------------------------
 static void clearScreen() {
-    // ANSI ESC[2J = erase display, ESC[H = cursor home
-    Serial.print(F("\x1B[2J\x1B[H"));
+    // ANSI ESC[2J = erase display, ESC[;H = cursor home (matches CoolTerm "Home display" pattern; valid VT100)
+    Serial.print(F("\x1B[2J\x1B[;H"));
     // Future: also clear video framebuffer
 }
 
