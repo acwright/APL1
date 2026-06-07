@@ -57,7 +57,7 @@ Idle state: all Hi-Z inputs (74LS245 drives the bus when not injecting).
 | PD2 | PS2CLK / INT0 | Input w/ pullup | PS/2 clock – triggers INT0 ISR on falling edge |
 | PD3 | PS2DATA | Input w/ pullup | PS/2 data |
 | PD4 | KBDRESB (active-low) | Input w/ pullup | Keyboard reset button – resets 6502 + PS/2 state |
-| PD5 | KBDCLRB (active-low) | Input w/ pullup | Keyboard clear button – sends ANSI clear to serial |
+| PD5 | KBDCLR (active-high) | Input (external 10 kΩ pull-down to GND required) | Keyboard clear button – sends ANSI clear to serial |
 | PD6 | KBDENB (active-low) | Output | 74LS245 OE – LOW=buffer enabled, HIGH=disabled during key inject |
 | PD7 | RESB (active-low) | Output | 6502 reset line – held LOW at power-on then released |
 
@@ -107,9 +107,11 @@ Matches the original Apple-1 terminal circuit:
 3. PIA clears CB2 (DA returns low); 6502 can write the next character
 
 ### Control buttons
-Both buttons are debounced (20 ms) and active-low:
-- **KBDRESB** (PD4) – asserts RESB low for 10 ms (resets 6502) and clears PS/2 decoder state
-- **KBDCLRB** (PD5) – sends ANSI clear sequence to serial (video framebuffer clear deferred)
+Both buttons are debounced (20 ms):
+- **KBDRESB** (PD4, active-low, internal pull-up) – asserts RESB low for 10 ms (resets 6502) and clears PS/2 decoder state
+- **KBDCLR** (PD5, active-**high**, external 10 kΩ pull-down to GND required) – sends ANSI clear sequence to serial (video framebuffer clear deferred)
+
+> **Hardware note:** The ATmega1284 has no internal pull-down resistors. PD5 **must** have an external ~10 kΩ resistor to GND. Without it the pin floats, making the button unreliable and potentially triggering a spurious clear on startup.
 
 ---
 

@@ -25,7 +25,7 @@
 #define PC_RDAB_HIGH()  (PORTC |=  (1 << PC_RDAB_BIT))
 
 // PORTD  PD0=RXD  PD1=TXD  PD2=PS2CLK(INT0)  PD3=PS2DATA
-//        PD4=KBDRESB(in,active-low)  PD5=KBDCLRB(in,active-low)
+//        PD4=KBDRESB(in,active-low)  PD5=KBDCLR(in,active-HIGH)
 //        PD6=KBDENB(out,active-low: LOW=74LS245 enabled)
 //        PD7=RESB(out,active-low reset to 6502)
 #define PD_RXD_BIT      0
@@ -33,7 +33,7 @@
 #define PD_PS2CLK_BIT   2
 #define PD_PS2DATA_BIT  3
 #define PD_KBDRESB_BIT  4
-#define PD_KBDCLRB_BIT  5
+#define PD_KBDCLR_BIT   5
 #define PD_KBDENB_BIT   6
 #define PD_RESB_BIT     7
 
@@ -44,7 +44,7 @@
 #define RESB_RELEASE()    (PORTD |=  (1 << PD_RESB_BIT))    // HIGH = 6502 running
 
 // ---------------------------------------------------------------------------
-// Phase 6 – PS/2 Set-2 scancode tables (US layout -> Apple-1 ASCII, bit7 set)
+// PS/2 Set-2 scancode tables (US layout -> Apple-1 ASCII, bit7 set)
 //   Index = Set-2 make code (0x00-0x7F); 0x00 = no mapping.
 //   Letters are always uppercase; shift only affects digits and symbols.
 // ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ static volatile uint8_t ps2_tail = 0;          // main reads here
 static bool slowMode = false;
 
 // ---------------------------------------------------------------------------
-// Phase 3 – putDisplayChar()  (video buffer hook deferred)
+// putDisplayChar()  (video buffer hook deferred)
 // ---------------------------------------------------------------------------
 void putDisplayChar(uint8_t c) {
     Serial.write(c);
@@ -99,7 +99,7 @@ void putDisplayChar(uint8_t c) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 4 – sendKey()  inject one Apple-1 ASCII byte into the PIA
+// sendKey()  inject one Apple-1 ASCII byte into the PIA
 // ---------------------------------------------------------------------------
 // ascii : Apple-1 style (bit7 set, uppercase).
 //   1. Disable 74LS245 so PA bus is not contended.
@@ -125,7 +125,7 @@ void sendKey(uint8_t ascii) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 6 – PS/2 frame ISR  (INT0, triggered on falling edge of PS2CLK/PD2)
+// PS/2 frame ISR  (INT0, triggered on falling edge of PS2CLK/PD2)
 //   11-bit frame: start(0) | D0..D7 LSB-first | parity(odd) | stop(1)
 // ---------------------------------------------------------------------------
 ISR(INT0_vect) {
@@ -153,12 +153,12 @@ ISR(INT0_vect) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 6 – PS/2 scancode decoder  (Set-2, stateful)
+// PS/2 scancode decoder  (Set-2, stateful)
 // ---------------------------------------------------------------------------
 static uint8_t ps2_state = 0;  // 0=normal 1=F0-break 2=E0-ext 3=E0-F0-ext-break
 static uint8_t ps2_mods  = 0;  // bit0=shift  bit1=ctrl  bit2=alt
 
-// Phase 7: called by KBDRESB handler to clear decoder state
+// Called by KBDRESB handler to clear decoder state
 static inline void resetPS2State() { ps2_state = 0; ps2_mods = 0; }
 
 // Forward declarations (defined after processPS2)
@@ -218,7 +218,7 @@ static void processPS2(uint8_t sc) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 7 – clearScreen() / doReset()  (shared by KBDCLRB, PS/2, serial)
+// clearScreen() / doReset()  (shared by KBDCLR, PS/2, serial)
 // ---------------------------------------------------------------------------
 static void clearScreen() {
     // ANSI ESC[2J = erase display, ESC[H = cursor home
@@ -258,15 +258,16 @@ void setup() {
     // --- PORTD ---
     // PD0 = RXD input  (UART)
     // PD1 = TXD output (UART)
-    // PD2-5 = inputs with pullup (PS2CLK, PS2DATA, KBDRESB, KBDCLRB)
+    // PD2-5 = inputs; PS2CLK, PS2DATA, KBDRESB have pullup; KBDCLR has NO pullup
+    //   (KBDCLR is active-HIGH: idle LOW, goes HIGH when key pressed)
     // PD6 = KBDENB output, start LOW (74LS245 buffer enabled)
     // PD7 = RESB  output, start LOW (6502 held in reset)
     DDRD  = (1 << PD_TXD_BIT) | (1 << PD_KBDENB_BIT) | (1 << PD_RESB_BIT); // 0xC2
     PORTD = (1 << PD_PS2CLK_BIT) | (1 << PD_PS2DATA_BIT)
-          | (1 << PD_KBDRESB_BIT) | (1 << PD_KBDCLRB_BIT);
-    // PD6 (KBDENB) = 0 → enabled; PD7 (RESB) = 0 → 6502 in reset  (0x3C)
+          | (1 << PD_KBDRESB_BIT);
+    // KBDCLR (PD5) = 0 → no pullup; PD6 (KBDENB) = 0 → enabled; PD7 (RESB) = 0 → 6502 in reset  (0x1C)
 
-    Serial.begin(115200);   // Phase 3 – init UART before releasing 6502 reset
+    Serial.begin(115200);   // init UART before releasing 6502 reset
 
     // --- Power-on reset: hold RESB low, then release ---
     delay(10);       // 10 ms – allows supply rails to stabilise
@@ -281,7 +282,7 @@ void setup() {
 // loop()
 // ---------------------------------------------------------------------------
 void loop() {
-    // --- Phase 3: Display path (PIA -> serial) ---
+    // --- Display path (PIA -> serial) ---
     // DA is active-HIGH at the ATmega (PIA CB2 is active-low but inverted by U1):
     // PB7 HIGH means the 6502 has written a char to the PIA.
     if (PINB & (1 << PB_DA_BIT)) {
@@ -307,7 +308,7 @@ void loop() {
         }
     }
 
-    // --- Phase 5: Serial input (PC -> PIA) ---
+    // --- Serial input (PC -> PIA) ---
     if (Serial.available()) {
         uint8_t c = (uint8_t)Serial.read();
         // Ctrl+L (0x0C FF) -> clear screen; Ctrl+\ (0x1C FS) -> reset 6502
@@ -322,22 +323,30 @@ void loop() {
         }
     }
 
-    // --- Phase 6: PS/2 input ---
+    // --- PS/2 input ---
     if (ps2_tail != ps2_head) {
         uint8_t sc = ps2_buf[ps2_tail];
         ps2_tail = (ps2_tail + 1) & (PS2_BUF_SIZE - 1);
         processPS2(sc);
     }
 
-    // --- Phase 7: Control signals (KBDRESB / KBDCLRB, active-low, debounced) ---
-    // Each button: arm on falling edge, fire once after 20 ms if still LOW.
+    // --- Control signals (KBDRESB active-low / KBDCLR active-high, debounced) ---
+    // KBDRESB: arm on falling edge, fire if still LOW after 20 ms.
+    // KBDCLR:  arm on rising  edge, fire if still HIGH after 20 ms.
+    // NOTE: KBDCLR (PD5) requires an external ~10 kΩ pull-down resistor to GND.
+    //       Without it the pin floats HIGH and button presses cannot be detected.
     {
-        static uint8_t  resb_prev  = 1, clrb_prev  = 1;
-        static bool     resb_armed = false, clrb_armed = false;
-        static uint32_t resb_t     = 0, clrb_t     = 0;
+        static uint8_t  resb_prev  = 1, clr_prev   = 0;
+        static bool     resb_armed = false, clr_armed  = false;
+        static uint32_t resb_t     = 0, clr_t      = 0;
+        static bool     clr_init   = false;    // snapshot pin on first tick
 
         uint8_t resb = (PIND >> PD_KBDRESB_BIT) & 1;
-        uint8_t clrb = (PIND >> PD_KBDCLRB_BIT) & 1;
+        uint8_t clr  = (PIND >> PD_KBDCLR_BIT)  & 1;
+
+        // Initialise clr_prev to the actual pin state so a floating-HIGH pin
+        // at startup does not immediately trigger a spurious clear screen.
+        if (!clr_init) { clr_prev = clr; clr_init = true; }
         uint32_t now_ms = millis();
 
         // KBDRESB: debounce -> assert RESB low pulse + reset PS/2 state
@@ -348,12 +357,12 @@ void loop() {
         }
         resb_prev = resb;
 
-        // KBDCLRB: debounce -> send ANSI clear to serial (video clear deferred)
-        if (clrb_prev && !clrb && !clrb_armed) { clrb_armed = true;  clrb_t = now_ms; }
-        if (clrb_armed && (now_ms - clrb_t >= 20)) {
-            clrb_armed = false;
-            if (!clrb) clearScreen();
+        // KBDCLR: active-HIGH – debounce -> send ANSI clear to serial (video clear deferred)
+        if (!clr_prev && clr && !clr_armed) { clr_armed = true;   clr_t = now_ms; }
+        if (clr_armed && (now_ms - clr_t >= 20)) {
+            clr_armed = false;
+            if (clr) clearScreen();
         }
-        clrb_prev = clrb;
+        clr_prev = clr;
     }
 }
