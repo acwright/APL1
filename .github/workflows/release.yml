@@ -24,7 +24,11 @@ jobs:
         working-directory: repo/Firmware/APL1 Terminal
         run: npm ci
 
-      - name: Build and publish (macOS)
+      - name: Build (electron-vite)
+        working-directory: repo/Firmware/APL1 Terminal
+        run: npm run build
+
+      - name: Publish (macOS)
         working-directory: repo/Firmware/APL1 Terminal
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -48,7 +52,11 @@ jobs:
         working-directory: repo/Firmware/APL1 Terminal
         run: npm ci
 
-      - name: Build and publish (Linux)
+      - name: Build (electron-vite)
+        working-directory: repo/Firmware/APL1 Terminal
+        run: npm run build
+
+      - name: Publish (Linux)
         working-directory: repo/Firmware/APL1 Terminal
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
