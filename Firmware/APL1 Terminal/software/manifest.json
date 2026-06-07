@@ -1,0 +1,17 @@
+{
+  "programs": [
+    {
+      "name": "Hello World",
+      "filename": "hello_world.txt",
+      "description": "Prints HELLO WORLD to the screen",
+      "runCommand": "0280R"
+    },
+    {
+      "name": "Count 0-9",
+      "filename": "count.txt",
+      "description": "Counts digits 0 through 9 then returns",
+      "runCommand": "0300R"
+    }
+  ]
+}
+

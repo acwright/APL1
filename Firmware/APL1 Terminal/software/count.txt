@@ -1,0 +1,21 @@
+; Count 0-9 for APL1 / Apple-1
+; Loads at $0300 — run with: 0300R
+; Prints digits 0-9 separated by spaces, then a CR, then returns
+;
+; 0300: LDX #$00              ; counter = 0
+; 0302: TXA                   ; A = counter
+; 0303: CLC
+; 0304: ADC #$B0              ; '0'|bit7 = $B0; digit N -> $B0+N
+; 0306: JSR $FFEF             ; print digit
+; 0309: LDA #$A0              ; space with bit7
+; 030B: JSR $FFEF             ; print space
+; 030E: INX
+; 030F: CPX #$0A              ; loop until 10
+; 0311: BNE $0302
+; 0313: LDA #$8D              ; CR
+; 0315: JSR $FFEF
+; 0318: RTS
+0300: A2 00 8A 18 69 B0 20 EF
+0308: FF A9 A0 20 EF FF E8 E0
+0310: 0A D0 EF A9 8D 20 EF FF
+0318: 60

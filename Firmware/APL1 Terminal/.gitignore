@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+out/
+dist/
+
+# electron-vite cache
+.vite/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.suo
+*.user
+
+# Logs
+*.log
+npm-debug.log*
+
+# Electron builder temp
+/build/

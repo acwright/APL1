@@ -1,0 +1,41 @@
+appId: com.acwright.apl1terminal
+productName: APL1 Terminal
+copyright: Copyright © 2026 A.C. Wright
+
+directories:
+  buildResources: build
+  output: dist
+
+files:
+  - out/**/*
+  - software/**/*
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  category: public.app-category.utilities
+
+dmg:
+  artifactName: ${name}-${version}-mac-${arch}.${ext}
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+  category: Utility
+
+appImage:
+  artifactName: ${name}-${version}.${ext}
+
+npmRebuild: true
+
+publish:
+  provider: github
+  releaseType: release
