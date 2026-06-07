@@ -102,26 +102,46 @@ void putDisplayChar(uint8_t c) {
 // sendKey()  inject one Apple-1 ASCII byte into the PIA
 // ---------------------------------------------------------------------------
 // ascii : Apple-1 style (bit7 set, uppercase).
-//   1. Disable 74LS245 so PA bus is not contended.
-//   2. Drive PA0-6 = data, PA7 (STROBE) starts LOW.
-//   3. Rising edge on PA7 latches data into PIA CA1.
-//   4. Return PA to Hi-Z, re-enable buffer.
+//
+// The keyboard STROBE (PIA CA1) line is driven, when idle, by the keyboard
+// through the 74LS245 (B8). Measured on real hardware the keyboard idles this
+// line HIGH, and the PIA is set to latch keyboard data on the RISING edge of
+// CA1 (KBDCR = $A7). Injection therefore has to produce EXACTLY ONE rising edge
+// on CA1, and must hand the line back to the '245 at the same idle level it
+// found it - otherwise the '245 re-asserting the idle HIGH level creates a
+// SECOND, phantom rising edge that latches the idle bus value (0x7F -> reads
+// 0xFF) which WozMon rejects by echoing "\". That phantom was the bug.
 void sendKey(uint8_t ascii) {
-    KBDENB_DISABLE();                           // PD6 HIGH – disable 74LS245
+    // Capture the keyboard's idle CA1 level while the '245 still drives the bus
+    // and PORTA is input. We restore CA1 to this exact level before handing the
+    // bus back, making the '245 takeover a same-level (no-edge) transition.
+    uint8_t idleHigh = (PINA >> PA_STROBE_BIT) & 1;
 
+    KBDENB_DISABLE();                           // PD6 HIGH – take bus from '245
+
+    // Drive CA1 LOW first, then HIGH, so the latch is one clean rising edge.
     DDRA  = 0xFF;                               // PA all outputs
-    PORTA = ascii & PA_DATA_MASK;               // PA0-6 = data; PA7 (STROBE) LOW
+    PORTA = ascii & PA_DATA_MASK;               // PA0-6 = data; PA7 (CA1) LOW
     delayMicroseconds(2);                       // data setup time
-
-    PORTA |=  (1 << PA_STROBE_BIT);            // PA7 HIGH → rising edge on CA1
+    PORTA |=  (1 << PA_STROBE_BIT);             // CA1 LOW→HIGH: latch injected key
     delayMicroseconds(20);                      // PIA latch hold time
-    PORTA &= ~(1 << PA_STROBE_BIT);            // PA7 LOW
+
+    // Restore CA1 to the keyboard idle level. With idle HIGH we simply hold it
+    // HIGH (no further edge). If idle were LOW we drop it (a falling edge, which
+    // the PIA ignores). Either way no extra RISING edge is produced.
+    if (idleHigh) PORTA |=  (1 << PA_STROBE_BIT);
+    else          PORTA &= ~(1 << PA_STROBE_BIT);
+
+    // Release PA0-6 but keep driving CA1 at the idle level during the handoff.
+    DDRA  = (1 << PA_STROBE_BIT);               // PA0-6 Hi-Z, PA7 still output
     delayMicroseconds(2);
+
+    KBDENB_ENABLE();                            // PD6 LOW – '245 re-drives CA1 to
+                                                // the same idle level: no edge
+    delayMicroseconds(2);                       // let the '245 take over CA1
 
     DDRA  = 0x00;                               // PA back to Hi-Z inputs
     PORTA = 0x00;
-
-    KBDENB_ENABLE();                            // PD6 LOW – re-enable 74LS245
 }
 
 // ---------------------------------------------------------------------------
@@ -331,38 +351,42 @@ void loop() {
     }
 
     // --- Control signals (KBDRESB active-low / KBDCLR active-high, debounced) ---
-    // KBDRESB: arm on falling edge, fire if still LOW after 20 ms.
-    // KBDCLR:  arm on rising  edge, fire if still HIGH after 20 ms.
+    // Integrating debounce: each input must remain CONTINUOUSLY in its active
+    // state for the whole window before firing. Any single sample in the
+    // inactive state re-arms (resets) the timer, so brief noise glitches – e.g.
+    // crosstalk coupled onto the keyboard ribbon's RESET line while the PA bus
+    // and 74LS245 are switching during heavy serial/key-injection traffic – can
+    // no longer accumulate into a spurious reset or clear. A genuine button
+    // press is held far longer than the window, so usability is unaffected.
     // NOTE: KBDCLR (PD5) requires an external ~10 kΩ pull-down resistor to GND.
     //       Without it the pin floats HIGH and button presses cannot be detected.
     {
-        static uint8_t  resb_prev  = 1, clr_prev   = 0;
-        static bool     resb_armed = false, clr_armed  = false;
-        static uint32_t resb_t     = 0, clr_t      = 0;
-        static bool     clr_init   = false;    // snapshot pin on first tick
+        const uint16_t  KBD_DEBOUNCE_MS = 40;   // continuous active time required
+        static bool     resb_armed = false, clr_armed = false;
+        static uint32_t resb_t     = 0,     clr_t     = 0;
 
-        uint8_t resb = (PIND >> PD_KBDRESB_BIT) & 1;
-        uint8_t clr  = (PIND >> PD_KBDCLR_BIT)  & 1;
-
-        // Initialise clr_prev to the actual pin state so a floating-HIGH pin
-        // at startup does not immediately trigger a spurious clear screen.
-        if (!clr_init) { clr_prev = clr; clr_init = true; }
+        uint8_t  resb   = (PIND >> PD_KBDRESB_BIT) & 1;   // active LOW
+        uint8_t  clr    = (PIND >> PD_KBDCLR_BIT)  & 1;   // active HIGH
         uint32_t now_ms = millis();
 
-        // KBDRESB: debounce -> assert RESB low pulse + reset PS/2 state
-        if (resb_prev && !resb && !resb_armed) { resb_armed = true;  resb_t = now_ms; }
-        if (resb_armed && (now_ms - resb_t >= 20)) {
+        // KBDRESB: must read LOW on every sample across the whole window
+        if (resb) {
+            resb_armed = false;                          // released / glitch -> re-arm
+        } else if (!resb_armed) {
+            resb_armed = true;  resb_t = now_ms;
+        } else if (now_ms - resb_t >= KBD_DEBOUNCE_MS) {
             resb_armed = false;
-            if (!resb) doReset();
+            doReset();
         }
-        resb_prev = resb;
 
-        // KBDCLR: active-HIGH – debounce -> send ANSI clear to serial (video clear deferred)
-        if (!clr_prev && clr && !clr_armed) { clr_armed = true;   clr_t = now_ms; }
-        if (clr_armed && (now_ms - clr_t >= 20)) {
+        // KBDCLR: must read HIGH on every sample across the whole window
+        if (!clr) {
             clr_armed = false;
-            if (clr) clearScreen();
+        } else if (!clr_armed) {
+            clr_armed = true;   clr_t = now_ms;
+        } else if (now_ms - clr_t >= KBD_DEBOUNCE_MS) {
+            clr_armed = false;
+            clearScreen();
         }
-        clr_prev = clr;
     }
 }
