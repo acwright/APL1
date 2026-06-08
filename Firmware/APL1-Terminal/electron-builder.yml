@@ -16,8 +16,7 @@ mac:
       arch:
         - arm64
   category: public.app-category.utilities
-  notarize:
-    teamId: 6J8NCZC8G6
+  notarize: true
 
 dmg:
   artifactName: ${name}-${version}-mac-${arch}.${ext}
