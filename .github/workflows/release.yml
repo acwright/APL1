@@ -6,7 +6,49 @@ on:
       - 'v*'
 
 jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: gh release create ${{ github.ref_name }} --repo ${{ github.repository }} --generate-notes || true
+
+  build-mac-arm64:
+    needs: create-release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install setuptools (fixes distutils on Python 3.12+)
+        run: pip3 install setuptools --break-system-packages
+
+      - name: Install dependencies
+        working-directory: repo/Firmware/APL1-Terminal
+        run: npm ci
+
+      - name: Build (electron-vite)
+        working-directory: repo/Firmware/APL1-Terminal
+        run: npm run build
+
+      - name: Package (macOS arm64)
+        working-directory: repo/Firmware/APL1-Terminal
+        run: npx electron-builder --mac --arm64 --publish never
+
+      - name: Upload to release
+        working-directory: repo/Firmware/APL1-Terminal
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: gh release upload ${{ github.ref_name }} dist/*.dmg --clobber --repo ${{ github.repository }}
+
   build-linux:
+    needs: create-release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,8 +70,12 @@ jobs:
         working-directory: repo/Firmware/APL1-Terminal
         run: npm run build
 
-      - name: Publish (Linux)
+      - name: Package (Linux)
+        working-directory: repo/Firmware/APL1-Terminal
+        run: npx electron-builder --linux --publish never
+
+      - name: Upload to release
         working-directory: repo/Firmware/APL1-Terminal
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: npx electron-builder --linux --publish always
+        run: gh release upload ${{ github.ref_name }} dist/*.AppImage dist/*.deb --clobber --repo ${{ github.repository }}
