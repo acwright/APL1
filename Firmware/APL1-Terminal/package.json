@@ -19,6 +19,7 @@
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "dist": "electron-builder --mac --linux",
+    "release:mac": "npm run build && npx electron-builder --mac --arm64 --publish never && gh release upload \"v$npm_package_version\" dist/apl1-terminal-$npm_package_version-mac-arm64.dmg --clobber",
     "typecheck": "vue-tsc --noEmit && tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {
