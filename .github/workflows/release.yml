@@ -24,7 +24,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install setuptools (fixes distutils on Python 3.12+)
         run: pip3 install setuptools --break-system-packages
@@ -60,7 +60,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install setuptools (fixes distutils on Python 3.12+)
         run: pip3 install setuptools --break-system-packages
