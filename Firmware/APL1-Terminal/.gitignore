@@ -22,4 +22,5 @@ Thumbs.db
 npm-debug.log*
 
 # Electron builder temp
-/build/
+/build/builder-debug.yml
+/build/builder-effective-config.yaml
