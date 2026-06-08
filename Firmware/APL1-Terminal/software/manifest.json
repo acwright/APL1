@@ -1,17 +1,118 @@
 {
   "programs": [
     {
-      "name": "Hello World",
-      "filename": "hello_world.txt",
-      "description": "Prints HELLO WORLD to the screen",
-      "runCommand": "0280R"
+      "name": "15 Puzzle",
+      "filename": "15-puzzle.woz",
+      "description": "The classic 4x4 sliding tile puzzle. Arrange numbered tiles 1-15 in order. By Jeff Jetton.",
+      "runCommand": "0300R"
     },
     {
-      "name": "Count 0-9",
-      "filename": "count.txt",
-      "description": "Counts digits 0 through 9 then returns",
+      "name": "Apple 30th",
+      "filename": "apple-30th.woz",
+      "description": "Graphics demo by Dave Schmenk celebrating the Apple's 30th anniversary.",
+      "runCommand": "280R"
+    },
+    {
+      "name": "Applesoft BASIC",
+      "filename": "applesoft-basic.woz",
+      "description": "Applesoft BASIC interpreter with floating-point support. Type NEW, enter your program, then RUN.",
+      "runCommand": "6000R"
+    },
+    {
+      "name": "Blackjack",
+      "filename": "blackjack.woz",
+      "description": "Casino-style Blackjack. Try to beat the dealer to 21 without going bust.",
+      "runCommand": "E2B3R + RUN"
+    },
+    {
+      "name": "Cellular Automaton",
+      "filename": "cellular-automaton.woz",
+      "description": "Configurable 1D cellular automaton visualizer. By Will Scullin.",
+      "runCommand": "300R"
+    },
+    {
+      "name": "Checkers",
+      "filename": "checkers.woz",
+      "description": "Two-player checkers (draughts) game running on Integer BASIC.",
+      "runCommand": "E2B3R + RUN"
+    },
+    {
+      "name": "Hamurabi",
+      "filename": "hamurabi.woz",
+      "description": "Govern ancient Sumeria over 10 years, managing grain, land, and a growing population.",
+      "runCommand": "E2B3R + RUN"
+    },
+    {
+      "name": "Hello",
+      "filename": "hello.woz",
+      "description": "Prints HELLO, APPLE I! to the screen.",
       "runCommand": "0300R"
+    },
+    {
+      "name": "Life",
+      "filename": "life.woz",
+      "description": "Conway's Game of Life in 6502 machine code. By John Conway and Larry Nelson.",
+      "runCommand": "2000R"
+    },
+    {
+      "name": "Little Tower",
+      "filename": "little-tower.woz",
+      "description": "A text adventure game for the Apple 1.",
+      "runCommand": "300R"
+    },
+    {
+      "name": "Lunar Lander",
+      "filename": "lunar-lander.woz",
+      "description": "Guide a lunar module to a safe landing by controlling engine burn rate.",
+      "runCommand": "300R"
+    },
+    {
+      "name": "Matrix",
+      "filename": "matrix.woz",
+      "description": "Matrix-style scrolling display effect running on Integer BASIC.",
+      "runCommand": "E2B3R + RUN"
+    },
+    {
+      "name": "Microchess",
+      "filename": "microchess.woz",
+      "description": "One of the first chess programs for a home computer. By Peter Jennings, 1976.",
+      "runCommand": "300R"
+    },
+    {
+      "name": "Shut the Box",
+      "filename": "shut-the-box.woz",
+      "description": "Classic dice game. Roll the dice and flip down numbered tiles until the box is shut. By Jeff Jetton.",
+      "runCommand": "0300R"
+    },
+    {
+      "name": "Slots",
+      "filename": "slots.woz",
+      "description": "Slot machine game running on Integer BASIC.",
+      "runCommand": "E2B3R + RUN"
+    },
+    {
+      "name": "Star Trek",
+      "filename": "star-trek.woz",
+      "description": "Command the Enterprise against Klingon forces in the classic text-based Star Trek strategy game.",
+      "runCommand": "E2B3R + RUN"
+    },
+    {
+      "name": "Star Trek 2003",
+      "filename": "star-trek-2003.woz",
+      "description": "Enhanced 2003 version of the Star Trek text strategy game with additional features.",
+      "runCommand": "E2B3R + RUN"
+    },
+    {
+      "name": "Volksforth",
+      "filename": "volksforth.woz",
+      "description": "A Forth language interpreter for the Apple 1.",
+      "runCommand": "1000R"
+    },
+    {
+      "name": "Wumpus",
+      "filename": "wumpus.woz",
+      "description": "Hunt the Wumpus through a network of caves. Classic text-based logic and deduction game.",
+      "runCommand": "E2B3R + RUN"
     }
   ]
 }
-

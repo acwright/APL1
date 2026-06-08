@@ -6,6 +6,14 @@
   box-sizing: border-box;
 }
 
+button,
+select,
+input,
+textarea {
+  font-family: inherit;
+  font-weight: inherit;
+}
+
 html,
 body {
   margin: 0;
@@ -15,7 +23,8 @@ body {
   overflow: hidden;
   background-color: #1a1a1a;
   color: #33ff33;
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
+  font-weight: bold;
   /* Disable text selection to feel like a hardware terminal */
   user-select: none;
   -webkit-user-select: none;

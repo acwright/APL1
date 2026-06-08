@@ -167,7 +167,7 @@ const ledClass = computed(() => ({
 }
 
 .brand-name {
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
   font-size: 1.1rem;
   font-weight: bold;
   letter-spacing: 0.25em;
@@ -176,7 +176,7 @@ const ledClass = computed(() => ({
 }
 
 .brand-model {
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
   font-size: 0.55rem;
   letter-spacing: 0.2em;
   color: #333;
@@ -218,7 +218,7 @@ const ledClass = computed(() => ({
   border-bottom: 2px solid #0a0a0a;
   border-radius: 4px;
   color: #666;
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
   font-size: 0.65rem;
   font-weight: bold;
   letter-spacing: 0.18em;

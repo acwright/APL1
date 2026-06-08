@@ -130,7 +130,7 @@ function cycle(): void {
 }
 
 .knob-label {
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
   font-size: 0.55rem;
   letter-spacing: 0.12em;
   color: #555;

@@ -224,7 +224,8 @@ async function updateSetting(partial: Partial<AppSettings>): Promise<void> {
   background: #111;
   border-left: 1px solid #2a2a2a;
   color: #aaa;
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
+  font-weight: bold;
   font-size: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -292,7 +293,7 @@ async function updateSetting(partial: Partial<AppSettings>): Promise<void> {
   background: #1a1a1a;
   border: 1px solid #333;
   color: #ccc;
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
   font-size: 0.72rem;
   padding: 4px 6px;
   border-radius: 2px;
@@ -332,7 +333,7 @@ async function updateSetting(partial: Partial<AppSettings>): Promise<void> {
   background: #1a2a1a;
   border: 1px solid #2a4a2a;
   color: #33ff33;
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
   font-size: 0.68rem;
   letter-spacing: 0.1em;
   padding: 5px 10px;
@@ -396,7 +397,7 @@ async function updateSetting(partial: Partial<AppSettings>): Promise<void> {
   background: #1a1a1a;
   border: 1px solid #333;
   color: var(--clr);
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
   font-size: 0.6rem;
   letter-spacing: 0.08em;
   padding: 5px 4px;
@@ -446,7 +447,7 @@ async function updateSetting(partial: Partial<AppSettings>): Promise<void> {
   background: #1a1a1a;
   border: 1px solid #333;
   color: #ccc;
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
   font-size: 0.72rem;
   padding: 4px 6px;
   border-radius: 2px;

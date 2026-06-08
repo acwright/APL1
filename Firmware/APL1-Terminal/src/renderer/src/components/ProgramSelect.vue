@@ -33,7 +33,7 @@
           >
             <option value="" disabled>— select program —</option>
             <option
-              v-for="p in programs"
+              v-for="p in sortedPrograms"
               :key="p.filename"
               :value="p.filename"
             >{{ p.name }}</option>
@@ -114,6 +114,10 @@ const sendDone = ref(false)
 const progress = ref(0)
 const errorMsg = ref('')
 let cancelFlag = false
+
+const sortedPrograms = computed<ProgramEntry[]>(() =>
+  [...programs.value].sort((a, b) => a.name.localeCompare(b.name))
+)
 
 const selectedProgram = computed<ProgramEntry | undefined>(() =>
   programs.value.find((p) => p.filename === selectedFilename.value)
@@ -222,7 +226,8 @@ function cancelSend(): void {
   background: #111;
   border: 1px solid #2a2a2a;
   width: 300px;
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
+  font-weight: bold;
   font-size: 0.75rem;
   color: #aaa;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
@@ -281,7 +286,7 @@ function cancelSend(): void {
   border: 1px solid #333;
   color: #ccc;
   padding: 5px 8px;
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
   font-size: 0.75rem;
   width: 100%;
   cursor: pointer;
@@ -302,7 +307,7 @@ function cancelSend(): void {
 }
 .ps-run-cmd code {
   color: var(--phosphor, #33ff33);
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
   opacity: 0.8;
 }
 
@@ -362,7 +367,7 @@ function cancelSend(): void {
 .ps-cancel-btn {
   background: none;
   border: 1px solid;
-  font-family: monospace;
+  font-family: 'Futura', sans-serif;
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   padding: 5px 18px;
