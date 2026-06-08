@@ -39,6 +39,9 @@ jobs:
 
       - name: Package (macOS arm64)
         working-directory: repo/Firmware/APL1-Terminal
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          USE_HARD_LINKS: false
         run: npx electron-builder --mac --arm64 --publish never
 
       - name: Upload to release
