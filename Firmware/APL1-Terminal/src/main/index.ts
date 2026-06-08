@@ -24,7 +24,6 @@ function createWindow(): void {
     title: 'APL1 Terminal',
     backgroundColor: '#1a1a1a',
     show: false,
-    ...(process.platform === 'linux' ? {} : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -125,6 +124,7 @@ ipcMain.handle(IPC.WINDOW_IS_FULLSCREEN, () => mainWindow?.isFullScreen() ?? fal
 
 app.whenReady().then(() => {
   settingsService = new SettingsService()
+
   createWindow()
 
   app.on('activate', () => {
@@ -133,7 +133,5 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
+  app.quit()
 })

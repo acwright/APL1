@@ -1,7 +1,7 @@
-6502-WOZMON
-===========
+APL1 ROM
+========
 
-Wozmon ROM for the [A.C. Wright 6502 project](https://github.com/acwright/6502).
+ROM for the [A.C. Wright APL1 project](https://github.com/acwright/APL1).
 
 ## Prerequisites
 

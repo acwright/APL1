@@ -1,6 +1,6 @@
 {
   "name": "apl1-terminal",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "APL1 Retro Serial Terminal — Apple-1 faithful terminal emulator",
   "author": {
     "name": "A.C. Wright",
@@ -19,7 +19,6 @@
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "dist": "electron-builder --mac --linux",
-    "dist:mac:local": "TMPBIN=$(mktemp -d) && printf '#!/bin/sh\\nexec /usr/bin/python3 \"$@\"\\n' > $TMPBIN/python && chmod +x $TMPBIN/python && PATH=$TMPBIN:$PATH npm --python=/usr/bin/python3 run dist:mac",
     "typecheck": "vue-tsc --noEmit && tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {
@@ -30,9 +29,9 @@
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/tsconfig": "^1.0.1",
     "@vitejs/plugin-vue": "^5.2.1",
-    "electron": "^34.0.0",
-    "electron-builder": "^25.1.8",
-    "electron-vite": "^2.3.0",
+    "electron": "^42.3.3",
+    "electron-builder": "^26.15.2",
+    "electron-vite": "^5.0.0",
     "typescript": "^6.0.3",
     "vue": "^3.5.13",
     "vue-tsc": "^2.2.0"

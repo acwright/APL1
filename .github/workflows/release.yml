@@ -21,15 +21,15 @@ jobs:
         run: pip3 install setuptools --break-system-packages
 
       - name: Install dependencies
-        working-directory: repo/Firmware/APL1 Terminal
+        working-directory: repo/Firmware/APL1-Terminal
         run: npm ci
 
       - name: Build (electron-vite)
-        working-directory: repo/Firmware/APL1 Terminal
+        working-directory: repo/Firmware/APL1-Terminal
         run: npm run build
 
       - name: Publish (macOS x64)
-        working-directory: repo/Firmware/APL1 Terminal
+        working-directory: repo/Firmware/APL1-Terminal
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npx electron-builder --mac --x64 --publish always
@@ -49,15 +49,15 @@ jobs:
         run: pip3 install setuptools --break-system-packages
 
       - name: Install dependencies
-        working-directory: repo/Firmware/APL1 Terminal
+        working-directory: repo/Firmware/APL1-Terminal
         run: npm ci
 
       - name: Build (electron-vite)
-        working-directory: repo/Firmware/APL1 Terminal
+        working-directory: repo/Firmware/APL1-Terminal
         run: npm run build
 
       - name: Publish (macOS arm64)
-        working-directory: repo/Firmware/APL1 Terminal
+        working-directory: repo/Firmware/APL1-Terminal
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npx electron-builder --mac --arm64 --publish always
@@ -77,15 +77,15 @@ jobs:
         run: pip3 install setuptools --break-system-packages
 
       - name: Install dependencies
-        working-directory: repo/Firmware/APL1 Terminal
+        working-directory: repo/Firmware/APL1-Terminal
         run: npm ci
 
       - name: Build (electron-vite)
-        working-directory: repo/Firmware/APL1 Terminal
+        working-directory: repo/Firmware/APL1-Terminal
         run: npm run build
 
       - name: Publish (Linux)
-        working-directory: repo/Firmware/APL1 Terminal
+        working-directory: repo/Firmware/APL1-Terminal
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npx electron-builder --linux --publish always
