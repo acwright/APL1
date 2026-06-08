@@ -35,18 +35,43 @@ export const CANVAS_W = 40 * CELL_W // 960
 export const CANVAS_H = 24 * CELL_H // 768
 
 /**
- * Build a fresh OffscreenCanvas atlas for the given CSS colour string.
- * Re-call whenever the phosphor colour changes.
+ * Extra transparent margin baked around each atlas cell so a pre-rendered
+ * phosphor glow has room to bleed without spilling into neighbouring atlas
+ * cells.  Must be ≥ the glow blur radius used in buildAtlas().
  */
-export function buildAtlas(color: string): OffscreenCanvas {
-  const atlas = new OffscreenCanvas(64 * CELL_W, CELL_H)
+export const GLOW_PAD = 8
+
+/** Phosphor glow blur radius baked into the atlas (canvas shadowBlur). */
+export const GLOW_BLUR = 8
+
+/** Padded source-cell dimensions inside the atlas (glyph cell + glow margin). */
+export const ATLAS_CELL_W = CELL_W + GLOW_PAD * 2
+export const ATLAS_CELL_H = CELL_H + GLOW_PAD * 2
+
+/**
+ * Build a fresh OffscreenCanvas atlas for the given CSS colour string.
+ * Re-call whenever the phosphor colour or glow setting changes.
+ *
+ * Each glyph is rendered into a padded cell (ATLAS_CELL_W × ATLAS_CELL_H).
+ * When `glow` is true the phosphor halo is baked in via shadowBlur **once**
+ * per glyph here, so the painter can blit cells with plain drawImage() calls
+ * (no per-blit shadow) and keep frame times consistent during heavy output.
+ */
+export function buildAtlas(color: string, glow = true): OffscreenCanvas {
+  const atlas = new OffscreenCanvas(64 * ATLAS_CELL_W, ATLAS_CELL_H)
   const ctx = atlas.getContext('2d')!
 
   ctx.fillStyle = color
+  if (glow) {
+    ctx.shadowColor = color
+    ctx.shadowBlur = GLOW_BLUR
+  }
 
   for (let i = 0; i < 64; i++) {
     const glyph = ROM_GLYPHS[i]
-    const xBase = i * CELL_W + CELL_PAD_X
+    // Glyph content is offset by the glow margin + the in-cell centring pad.
+    const xBase = i * ATLAS_CELL_W + GLOW_PAD + CELL_PAD_X
+    const yBase = GLOW_PAD + CELL_PAD_Y
 
     for (let row = 0; row < GLYPH_H; row++) {
       const bits = glyph[row]
@@ -55,7 +80,7 @@ export function buildAtlas(color: string): OffscreenCanvas {
         if (bits & (0x10 >> col)) {
           ctx.fillRect(
             xBase + col * PIXEL_SIZE,
-            CELL_PAD_Y + row * PIXEL_SIZE,
+            yBase + row * PIXEL_SIZE,
             PIXEL_SIZE,
             PIXEL_SIZE
           )

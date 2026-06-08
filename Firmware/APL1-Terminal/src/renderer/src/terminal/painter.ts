@@ -16,7 +16,14 @@
  */
 
 import { COLS, ROWS, type TerminalBuffer } from './buffer'
-import { buildAtlas, CELL_W, CELL_H } from './glyphAtlas'
+import {
+  buildAtlas,
+  CELL_W,
+  CELL_H,
+  ATLAS_CELL_W,
+  ATLAS_CELL_H,
+  GLOW_PAD
+} from './glyphAtlas'
 import type { PhosphorColor } from '../../../shared/types'
 
 export const PHOSPHOR_COLORS: Record<PhosphorColor, string> = {
@@ -45,7 +52,7 @@ export class TerminalPainter {
     private buffer: TerminalBuffer
   ) {
     this.ctx = canvas.getContext('2d')!
-    this.atlas = buildAtlas(this.phosphorColor)
+    this.atlas = buildAtlas(this.phosphorColor, this.glowEnabled)
 
     this.blinkTimer = setInterval(() => {
       this.blinkOn = !this.blinkOn
@@ -53,16 +60,18 @@ export class TerminalPainter {
     }, BLINK_INTERVAL_MS)
   }
 
-  /** Enable or disable the phosphor glow (canvas shadowBlur). */
+  /** Enable or disable the phosphor glow; rebuilds the atlas with the glow
+   *  halo baked in (or not) and schedules a repaint. */
   setGlow(enabled: boolean): void {
     this.glowEnabled = enabled
+    this.atlas = buildAtlas(this.phosphorColor, this.glowEnabled)
     this.requestPaint()
   }
 
   /** Switch phosphor colour; rebuilds the atlas and schedules a repaint. */
   setColor(color: PhosphorColor): void {
     this.phosphorColor = PHOSPHOR_COLORS[color]
-    this.atlas = buildAtlas(this.phosphorColor)
+    this.atlas = buildAtlas(this.phosphorColor, this.glowEnabled)
     this.requestPaint()
   }
 
@@ -100,19 +109,12 @@ export class TerminalPainter {
     ctx.fillStyle = '#000000'
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
 
-    // 2. Phosphor glow: apply canvas shadow so each glyph blit gets a halo.
-    //    The atlas glyphs have transparent backgrounds, so the shadow tracks
-    //    only the lit pixels in each character cell.
-    if (this.glowEnabled) {
-      ctx.shadowBlur = 8
-      ctx.shadowColor = this.phosphorColor
-    } else {
-      ctx.shadowBlur = 0
-    }
-
     const { col: cursorCol, row: cursorRow } = this.buffer.cursor
 
-    // 3. Draw each character cell.
+    // 2. Draw each character cell.  The phosphor glow (when enabled) is already
+    //    baked into the atlas glyphs, so each cell is a plain blit with no
+    //    per-draw shadow — keeping frame times short and consistent so bursts
+    //    of incoming characters render smoothly instead of stuttering.
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS; col++) {
         let charCode = this.buffer.get(col, row)
@@ -128,13 +130,13 @@ export class TerminalPainter {
 
         ctx.drawImage(
           atlas,
-          charIndex * CELL_W, 0, CELL_W, CELL_H,     // source in atlas
-          col * CELL_W, row * CELL_H, CELL_W, CELL_H // destination on canvas
+          // Source: padded glow cell inside the atlas.
+          charIndex * ATLAS_CELL_W, 0, ATLAS_CELL_W, ATLAS_CELL_H,
+          // Destination: offset by the glow margin so the glyph stays aligned
+          // and its halo bleeds naturally into neighbouring cells.
+          col * CELL_W - GLOW_PAD, row * CELL_H - GLOW_PAD, ATLAS_CELL_W, ATLAS_CELL_H
         )
       }
     }
-
-    // Reset shadow so it doesn't affect any future 2D operations.
-    ctx.shadowBlur = 0
   }
 }
