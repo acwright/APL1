@@ -17,6 +17,7 @@ A homebrew **Apple 1** replica built around the **6502** microprocessor, with a 
 - [Firmware](#firmware)
   - [APL1 Controller](#apl1-controller)
   - [APL1 ROM](#apl1-rom)
+  - [APL1 Terminal](#apl1-terminal)
 - [CAD](#cad)
 - [Production](#production)
 - [Schematics](#schematics)
@@ -72,7 +73,7 @@ The single board hosting the 6502 CPU, memory, PIA, and the ATmega1284 terminal 
 
 ## Firmware
 
-This repository contains firmware for both the terminal controller and the system ROM.
+This repository contains firmware for the terminal controller, the system ROM, and the desktop terminal application.
 
 ### APL1 Controller
 `Firmware/APL1 Controller/`
@@ -95,6 +96,22 @@ See [Firmware/APL1 Controller/README.md](./Firmware/APL1%20Controller/README.md)
 The system ROM image built from **WozMon**, Steve Wozniak's original Apple 1 monitor, assembled with the [cc65](https://cc65.github.io/) toolchain and burned to a 28C64 EEPROM.
 
 See [Firmware/APL1 ROM/README.md](./Firmware/APL1%20ROM/README.md) for build and programming instructions.
+
+### APL1 Terminal
+`Firmware/APL1-Terminal/`
+
+An [Electron](https://www.electronjs.org/) + [Vue 3](https://vuejs.org/) desktop application that provides a faithful CRT terminal experience for the APL1. Connects to the board over the DB-9 serial port at 115200 8N1 and renders output using the original Signetics 2513 character ROM glyphs. Provides:
+
+- 40×24 character canvas rendered with the authentic Signetics 2513 font
+- Selectable phosphor color: white, amber, or green
+- CRT effects: phosphor glow, scanlines overlay, and screen flicker animation
+- Serial port connection and disconnection (auto-detected ports)
+- Keyboard input forwarded to the APL1 with Apple 1 control shortcuts (Ctrl+L clear, Ctrl+\ reset, Ctrl+T throttle)
+- Built-in program loader with paced character/line sending for 20 bundled Wozmon programs
+- Settings panel with per-character and per-line delay controls
+- macOS (Apple Silicon DMG) and Linux (AppImage / deb) distribution builds
+
+See [Firmware/APL1-Terminal/README.md](./Firmware/APL1-Terminal/README.md) for build and run instructions.
 
 ## CAD
 `CAD/`
