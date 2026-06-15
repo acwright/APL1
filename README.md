@@ -140,6 +140,7 @@ Shared KiCad symbol and footprint libraries used across the APL1 hardware projec
 | C1–C10 | 10 | 100nF | Disc Capacitor |
 | C11, C14, C15, C16 | 4 | 1µF | Disc Capacitor |
 | C12, C13 | 2 | 18pF | Disc Capacitor |
+| C31 | 1 | 10uF | Electrolytic Capacitor 16v |
 | D1 | 1 | POWER LED | 3.0mm Power LED |
 | J2 | 1 | KEYBOARD | ASCII Keyboard Header (DIP-16) |
 | J3 | 1 | SERIAL (DTE) | DB-9 Male |
