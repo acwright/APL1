@@ -147,7 +147,8 @@ Shared KiCad symbol and footprint libraries used across the APL1 hardware projec
 | J4 | 1 | 5V DC | DC Barrel Jack |
 | J5 | 1 | PS/2 | 6-pin Mini-DIN (KMDGX-6S-BS) |
 | J6 | 1 | VIDEO | RCA Jack (PJRAN1X1U0XX) |
-| R1–R4, R6 | 5 | 1kΩ | 1/8W Resistor |
+| R1–R4 | 4 | 4.7kΩ | 1/8W Resistor |
+| R6 | 1 | 1kΩ | 1/8W Resistor |
 | R5 | 1 | 330Ω | 1/8W Resistor |
 | R7, R8 | 2 | 820Ω | 1/8W Resistor |
 | R9 | 2 | 10kΩ | 1/8W Resistor |
