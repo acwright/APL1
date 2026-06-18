@@ -67,6 +67,12 @@ The single board hosting the 6502 CPU, memory, PIA, and the ATmega1284 terminal 
 
 #### Revision History
 
+**Rev 1.1**
+
+- Add 10k pull-down resistor `R9` for KBDCLR.
+- Change pull-up resistors `R1-R4` from 1k to 4.7k.
+- Add capacitor `C17` for bulk capacitance at power supply.
+
 **Rev 1.0**
 
 - Initial release.
