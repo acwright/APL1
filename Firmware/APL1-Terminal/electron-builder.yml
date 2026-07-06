@@ -21,6 +21,17 @@ mac:
 dmg:
   artifactName: ${name}-${version}-mac-${arch}.${ext}
 
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  artifactName: ${name}-${version}-win-${arch}.${ext}
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
 linux:
   target:
     - target: AppImage
@@ -32,10 +43,9 @@ linux:
   category: Utility
 
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-linux-${arch}.${ext}
+
+deb:
+  artifactName: ${name}-${version}-linux-${arch}.${ext}
 
 npmRebuild: true
-
-publish:
-  provider: github
-  releaseType: release

@@ -115,20 +115,39 @@ npm run build
 
 ### Distribution
 
-Build a distributable package for the current platform:
+Distribution packages are built locally on macOS. Each platform has its own prerequisites:
+
+| Platform | Prerequisite |
+|----------|-------------|
+| **macOS** | Xcode, a valid **Developer ID Application** certificate in Keychain |
+| **Linux** | Docker (electron-builder pulls `electronuserland/builder` automatically) |
+| **Windows** | Wine — `brew install --cask wine-stable` |
+
+Before building macOS or Windows targets, export your notarization credentials:
 
 ```bash
-# macOS (Apple Silicon DMG)
+export APPLE_ID="your@apple.id"
+export APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+export APPLE_TEAM_ID="XXXXXXXXXX"
+```
+
+Build commands:
+
+```bash
+# macOS (Apple Silicon DMG — signed and notarized)
 npm run dist:mac
 
-# Linux (AppImage + deb, x64)
+# Linux (AppImage + deb, x64 — requires Docker)
 npm run dist:linux
 
-# Both platforms
+# Windows (NSIS installer, x64 — requires Wine)
+npm run dist:win
+
+# All three platforms
 npm run dist
 ```
 
-Artifacts are written to the `dist/` directory. macOS builds are notarized via the `publish` configuration in `electron-builder.yml`.
+Artifacts are written to the `dist/` directory. After tagging a release, upload the artifacts to the corresponding GitHub release manually.
 
 ---
 

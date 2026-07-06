@@ -115,7 +115,7 @@ An [Electron](https://www.electronjs.org/) + [Vue 3](https://vuejs.org/) desktop
 - Keyboard input forwarded to the APL1 with Apple 1 control shortcuts (Ctrl+L clear, Ctrl+\ reset, Ctrl+T throttle)
 - Built-in program loader with paced character/line sending for 20 bundled Wozmon programs
 - Settings panel with per-character and per-line delay controls
-- macOS (Apple Silicon DMG) and Linux (AppImage / deb) distribution builds
+- macOS (Apple Silicon DMG), Linux (AppImage / deb), and Windows (NSIS installer) distribution builds, all built locally from macOS
 
 See [Firmware/APL1-Terminal/README.md](./Firmware/APL1-Terminal/README.md) for build and run instructions.
 

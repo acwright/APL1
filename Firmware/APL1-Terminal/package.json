@@ -17,8 +17,9 @@
     "preview": "electron-vite preview",
     "pack": "electron-builder --dir",
     "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
     "dist:linux": "electron-builder --linux",
-    "dist": "electron-builder --mac --linux",
+    "dist": "electron-builder --mac --win --linux",
     "typecheck": "vue-tsc --noEmit && tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {
