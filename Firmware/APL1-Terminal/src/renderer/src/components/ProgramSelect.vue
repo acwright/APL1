@@ -1,10 +1,16 @@
 <!--
-  ProgramSelect.vue — Phase 7
-  Overlay panel for loading and paced-sending bundled Wozmon programs.
+  ProgramSelect.vue
+  Overlay panel for loading and paced-sending Wozmon programs.
 
-  Opened when the user clicks the SEND button on the monitor control panel.
-  Reads programs from software/manifest.json via IPC, lets the user pick one,
-  and streams it to the APL1 with configurable per-char and per-line delays.
+  Three input modes selectable via tabs:
+    1. Library — pick from bundled manifest programs
+    2. File    — browse for a local Wozmon .txt / .woz file
+    3. Paste   — paste Wozmon hex lines directly into a text area
+
+  All three modes share the same paced-send engine and progress indicator.
+  The File and Paste modes auto-detect the program start address from the
+  first "XXXX:" line in the content and show a Wozmon run-command hint
+  (e.g. "0280R").
 
   Strips comment lines (starting with ;) and blank lines before sending.
   Each line is sent character-by-character (uppercase + bit7), then an Enter
@@ -20,35 +26,88 @@
         <button class="ps-close" @click="onClose" :disabled="isSending" title="Close">✕</button>
       </div>
 
+      <!-- Tabs -->
+      <div class="ps-tabs">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          class="ps-tab"
+          :class="{ active: activeTab === tab.id }"
+          :disabled="isSending"
+          @click="setTab(tab.id)"
+        >{{ tab.label }}</button>
+      </div>
+
       <!-- Body -->
       <div class="ps-body">
 
-        <!-- Program dropdown -->
-        <div class="ps-field">
-          <label class="ps-label">PROGRAM</label>
-          <select
-            v-model="selectedFilename"
-            class="ps-select"
-            :disabled="isSending || programs.length === 0"
-          >
-            <option value="" disabled>— select program —</option>
-            <option
-              v-for="p in sortedPrograms"
-              :key="p.filename"
-              :value="p.filename"
-            >{{ p.name }}</option>
-          </select>
-        </div>
+        <!-- ── Library tab ──────────────────────────────────────── -->
+        <template v-if="activeTab === 'library'">
+          <div class="ps-field">
+            <label class="ps-label">PROGRAM</label>
+            <select
+              v-model="selectedFilename"
+              class="ps-select"
+              :disabled="isSending || programs.length === 0"
+            >
+              <option value="" disabled>— select program —</option>
+              <option
+                v-for="p in sortedPrograms"
+                :key="p.filename"
+                :value="p.filename"
+              >{{ p.name }}</option>
+            </select>
+          </div>
 
-        <!-- Description -->
-        <div v-if="selectedProgram" class="ps-desc">
-          <span v-if="selectedProgram.description">{{ selectedProgram.description }}</span>
-          <span v-if="selectedProgram.runCommand" class="ps-run-cmd">
-            Run: <code>{{ selectedProgram.runCommand }}</code>
-          </span>
-        </div>
+          <div v-if="selectedProgram" class="ps-desc">
+            <span v-if="selectedProgram.description">{{ selectedProgram.description }}</span>
+            <span v-if="selectedProgram.runCommand" class="ps-run-cmd">
+              Run: <code>{{ selectedProgram.runCommand }}</code>
+            </span>
+          </div>
+        </template>
 
-        <!-- Progress bar (visible while sending) -->
+        <!-- ── File tab ─────────────────────────────────────────── -->
+        <template v-else-if="activeTab === 'file'">
+          <div class="ps-field">
+            <label class="ps-label">FILE</label>
+            <div class="ps-file-row">
+              <span class="ps-filename">{{ fileName || '— choose file —' }}</span>
+              <button class="ps-browse-btn" :disabled="isSending" @click="triggerFileInput">BROWSE</button>
+            </div>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".txt,.woz"
+              style="display: none"
+              @change="onFileSelected"
+            />
+          </div>
+
+          <div v-if="fileRunCommand" class="ps-desc">
+            <span class="ps-run-cmd">Run: <code>{{ fileRunCommand }}</code></span>
+          </div>
+        </template>
+
+        <!-- ── Paste tab ─────────────────────────────────────────── -->
+        <template v-else>
+          <div class="ps-field">
+            <label class="ps-label">PASTE WOZMON PROGRAM</label>
+            <textarea
+              v-model="pasteContent"
+              class="ps-textarea"
+              :disabled="isSending"
+              placeholder="0280: A9 00 AA 20 EF FF&#10;..."
+              spellcheck="false"
+            />
+          </div>
+
+          <div v-if="pasteRunCommand" class="ps-desc">
+            <span class="ps-run-cmd">Run: <code>{{ pasteRunCommand }}</code></span>
+          </div>
+        </template>
+
+        <!-- ── Progress bar (all tabs) ──────────────────────────── -->
         <div v-if="isSending || sendDone" class="ps-progress-wrap">
           <div class="ps-progress-track">
             <div
@@ -71,7 +130,7 @@
           <button
             v-if="!isSending"
             class="ps-send-btn"
-            :disabled="!selectedFilename || !canSend"
+            :disabled="!canSend"
             @click="startSend"
           >SEND</button>
           <button
@@ -95,6 +154,14 @@
 import { ref, computed, onMounted } from 'vue'
 import type { ProgramEntry, SerialStatus } from '../../../shared/types'
 
+type TabId = 'library' | 'file' | 'paste'
+
+const tabs: { id: TabId; label: string }[] = [
+  { id: 'library', label: 'LIBRARY' },
+  { id: 'file',    label: 'FILE' },
+  { id: 'paste',   label: 'PASTE' }
+]
+
 const props = defineProps<{
   serialStatus: SerialStatus
   charDelay: number
@@ -107,13 +174,27 @@ const emit = defineEmits<{
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-const programs = ref<ProgramEntry[]>([])
-const selectedFilename = ref('')
+// Shared
+const activeTab = ref<TabId>('library')
 const isSending = ref(false)
 const sendDone = ref(false)
 const progress = ref(0)
 const errorMsg = ref('')
 let cancelFlag = false
+
+// Library tab
+const programs = ref<ProgramEntry[]>([])
+const selectedFilename = ref('')
+
+// File tab
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const fileName = ref('')
+const fileContent = ref('')
+
+// Paste tab
+const pasteContent = ref('')
+
+// ── Computed ──────────────────────────────────────────────────────────────────
 
 const sortedPrograms = computed<ProgramEntry[]>(() =>
   [...programs.value].sort((a, b) => a.name.localeCompare(b.name))
@@ -123,7 +204,15 @@ const selectedProgram = computed<ProgramEntry | undefined>(() =>
   programs.value.find((p) => p.filename === selectedFilename.value)
 )
 
-const canSend = computed(() => props.serialStatus === 'connected' && !isSending.value)
+const fileRunCommand = computed(() => detectRunCommand(fileContent.value))
+const pasteRunCommand = computed(() => detectRunCommand(pasteContent.value))
+
+const canSend = computed(() => {
+  if (isSending.value || props.serialStatus !== 'connected') return false
+  if (activeTab.value === 'library') return !!selectedFilename.value
+  if (activeTab.value === 'file') return !!fileContent.value
+  return pasteContent.value.trim().length > 0
+})
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -136,6 +225,54 @@ onMounted(async () => {
   }
 })
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Detect the Wozmon start address from program content and return a run hint
+ * like "0280R". Looks for the first line of the form "XXXX: ..." after
+ * stripping comment lines (;) and blank lines.
+ */
+function detectRunCommand(content: string): string | undefined {
+  if (!content) return undefined
+  const lines = content
+    .split('\n')
+    .map((l) => {
+      const ci = l.indexOf(';')
+      return (ci >= 0 ? l.slice(0, ci) : l).trim()
+    })
+    .filter((l) => l.length > 0)
+
+  for (const line of lines) {
+    const m = line.match(/^([0-9A-Fa-f]{1,4}):/)
+    if (m) {
+      return m[1].toUpperCase().padStart(4, '0') + 'R'
+    }
+  }
+  return undefined
+}
+
+/** Strip comment and blank lines; trim each line. */
+function parseLines(content: string): string[] {
+  return content
+    .split('\n')
+    .map((l) => {
+      const ci = l.indexOf(';')
+      return (ci >= 0 ? l.slice(0, ci) : l).trim()
+    })
+    .filter((l) => l.length > 0)
+}
+
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+
+// ── Tab management ────────────────────────────────────────────────────────────
+
+function setTab(tab: TabId): void {
+  if (isSending.value) return
+  activeTab.value = tab
+  sendDone.value = false
+  errorMsg.value = ''
+}
+
 // ── Close ─────────────────────────────────────────────────────────────────────
 
 function onClose(): void {
@@ -143,13 +280,58 @@ function onClose(): void {
   emit('close')
 }
 
+// ── File input ────────────────────────────────────────────────────────────────
+
+function triggerFileInput(): void {
+  fileInputRef.value?.click()
+}
+
+function onFileSelected(event: Event): void {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  fileName.value = file.name
+  fileContent.value = ''
+  sendDone.value = false
+  errorMsg.value = ''
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    fileContent.value = (e.target?.result as string) ?? ''
+  }
+  reader.onerror = () => {
+    errorMsg.value = 'Failed to read file'
+  }
+  reader.readAsText(file)
+
+  // Reset so the same file can be re-selected
+  input.value = ''
+}
+
 // ── Paced send ────────────────────────────────────────────────────────────────
 
-const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
-
 async function startSend(): Promise<void> {
-  if (!selectedFilename.value || !canSend.value) return
+  if (!canSend.value) return
 
+  let content: string
+  if (activeTab.value === 'library') {
+    try {
+      content = await window.api.software.readFile(selectedFilename.value)
+    } catch (err) {
+      errorMsg.value = `Failed to load program: ${err instanceof Error ? err.message : String(err)}`
+      return
+    }
+  } else if (activeTab.value === 'file') {
+    content = fileContent.value
+  } else {
+    content = pasteContent.value
+  }
+
+  await sendContent(content)
+}
+
+async function sendContent(content: string): Promise<void> {
   isSending.value = true
   sendDone.value = false
   progress.value = 0
@@ -157,17 +339,7 @@ async function startSend(): Promise<void> {
   cancelFlag = false
 
   try {
-    const content = await window.api.software.readFile(selectedFilename.value)
-
-    // Strip comment lines (starting with ;) and blank lines
-    const lines = content
-      .split('\n')
-      .map((l) => {
-        const ci = l.indexOf(';')
-        return (ci >= 0 ? l.slice(0, ci) : l).trim()
-      })
-      .filter((l) => l.length > 0)
-
+    const lines = parseLines(content)
     const total = lines.length
 
     for (let i = 0; i < lines.length; i++) {
@@ -261,6 +433,31 @@ function cancelSend(): void {
 .ps-close:hover:not(:disabled) { color: #aaa; }
 .ps-close:disabled { opacity: 0.3; cursor: not-allowed; }
 
+/* ── Tabs ──────────────────────────────────────────────────────────── */
+.ps-tabs {
+  display: flex;
+  border-bottom: 1px solid #222;
+}
+
+.ps-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-right: 1px solid #222;
+  color: #444;
+  font-family: 'Futura', sans-serif;
+  font-weight: bold;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  padding: 7px 0;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.ps-tab:last-child { border-right: none; }
+.ps-tab:hover:not(:disabled):not(.active) { color: #777; background: #141414; }
+.ps-tab.active { color: var(--phosphor, #33ff33); background: #0d0d0d; }
+.ps-tab:disabled { opacity: 0.3; cursor: not-allowed; }
+
 /* ── Body ──────────────────────────────────────────────────────────── */
 .ps-body {
   padding: 14px;
@@ -292,6 +489,58 @@ function cancelSend(): void {
   cursor: pointer;
 }
 .ps-select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── File row ──────────────────────────────────────────────────────── */
+.ps-file-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  padding: 4px 6px 4px 8px;
+}
+
+.ps-filename {
+  flex: 1;
+  color: #ccc;
+  font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ps-browse-btn {
+  background: none;
+  border: 1px solid #444;
+  color: #888;
+  font-family: 'Futura', sans-serif;
+  font-weight: bold;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ps-browse-btn:hover:not(:disabled) { color: #bbb; border-color: #666; }
+.ps-browse-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── Paste textarea ────────────────────────────────────────────────── */
+.ps-textarea {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #ccc;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  padding: 6px 8px;
+  width: 100%;
+  height: 120px;
+  resize: vertical;
+  box-sizing: border-box;
+  line-height: 1.5;
+}
+.ps-textarea::placeholder { color: #333; }
+.ps-textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Description ───────────────────────────────────────────────────── */
 .ps-desc {

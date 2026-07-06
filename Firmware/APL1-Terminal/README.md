@@ -14,7 +14,7 @@ An [Electron](https://www.electronjs.org/) + [Vue 3](https://vuejs.org/) app tha
 - **CRT effects** — phosphor glow, scanlines overlay, and screen flicker (individually toggleable)
 - **Serial connection** — auto-discovers ports; connects at 115200 8N1
 - **Keyboard input** — keystrokes forwarded to the APL1 with Apple 1 control shortcuts
-- **Program loader** — paced sending of 20 bundled Wozmon programs with configurable per-character and per-line delays
+- **Program loader** — paced sending of Wozmon programs via three input modes: bundled library, local file upload, or pasted text; configurable per-character and per-line delays
 - **Persistent settings** — port selection, display options, and pacing delays saved across sessions
 
 ---
@@ -28,6 +28,20 @@ An [Electron](https://www.electronjs.org/) + [Vue 3](https://vuejs.org/) app tha
 | Ctrl+T | Toggle throttle ("slow") mode on the controller |
 | F1 / ⚙ button | Open / close settings panel |
 | Escape | Close open overlay panel |
+
+---
+
+## Send Program Panel
+
+The Send Program panel is opened by clicking the SEND button on the monitor control panel. It provides three tabs for loading Wozmon programs:
+
+| Tab | Description |
+|-----|-------------|
+| **Library** | Pick from the bundled program catalog. Shows program name, description, and the Wozmon run command. |
+| **File** | Browse for a local Wozmon-formatted `.txt` or `.woz` file. The first `XXXX:` address in the file is detected automatically and shown as a run command hint (e.g. `0280R`). |
+| **Paste** | Paste Wozmon hex lines directly into a text area. The start address is detected in real time from the pasted content and shown as a run command hint. |
+
+All three tabs share the same paced-send engine (configurable per-character and per-line delays), the same progress bar, and the SEND / CANCEL controls. Comment lines beginning with `;` and blank lines are stripped before sending. Each line is transmitted character-by-character with bit 7 set, followed by a carriage return (0x8D).
 
 ---
 
@@ -169,3 +183,22 @@ Settings are persisted to `<userData>/settings.json` and restored on next launch
 | `flicker` | `true` | Subtle screen flicker animation |
 | `charDelay` | `10` ms | Delay between characters when sending a program |
 | `lineDelay` | `60` ms | Delay between lines when sending a program |
+
+---
+
+## Changelog
+
+### 1.1.0 — 2026-07-06
+
+- **Send Program — File tab**: browse for any local Wozmon-formatted `.txt` or `.woz` file and send it with the paced-send engine.
+- **Send Program — Paste tab**: paste Wozmon hex lines directly into a text area for immediate sending.
+- **Auto run-command detection**: the File and Paste tabs scan the program content for the first `XXXX:` address line and display a Wozmon run-command hint (e.g. `0280R`) automatically.
+- Send Program panel redesigned with a three-tab layout (Library / File / Paste); all tabs share the progress bar, SEND/CANCEL controls, and not-connected warning.
+
+### 1.0.0 — Initial release
+
+- 40×24 CRT terminal with Signetics 2513 ROM glyphs.
+- Phosphor color selector (white, amber, green) and CRT effects (glow, scanlines, flicker).
+- Serial connection at 115200 8N1 with auto port discovery.
+- Bundled library of 20 Wozmon programs with paced sending.
+- Persistent settings saved across sessions.
