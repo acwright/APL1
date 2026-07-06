@@ -120,10 +120,10 @@ Distribution packages are built locally on macOS. Each platform has its own prer
 | Platform | Prerequisite |
 |----------|-------------|
 | **macOS** | Xcode, a valid **Developer ID Application** certificate in Keychain |
-| **Linux** | Docker (electron-builder pulls `electronuserland/builder` automatically) |
+| **Linux** | Docker (electron-builder runs inside `electronuserland/builder`) |
 | **Windows** | Wine — `brew install --cask wine-stable` |
 
-Before building macOS or Windows targets, export your notarization credentials:
+Before building macOS targets, export your notarization credentials (or add them to `~/.zshrc`):
 
 ```bash
 export APPLE_ID="your@apple.id"
@@ -140,7 +140,7 @@ npm run dist:mac
 # Linux (AppImage + deb, x64 — requires Docker)
 npm run dist:linux
 
-# Windows (NSIS installer, x64 — requires Wine)
+# Windows (NSIS installer, x64 — requires Docker)
 npm run dist:win
 
 # All three platforms
@@ -148,6 +148,8 @@ npm run dist
 ```
 
 Artifacts are written to the `dist/` directory. After tagging a release, upload the artifacts to the corresponding GitHub release manually.
+
+> **Note — Linux builds:** `dist:linux` runs entirely inside Docker. It uses a named Docker volume (`apl1-terminal-linux-modules`) to keep Linux-compiled `node_modules` isolated from the macOS working copy. The first run pulls the Docker image and compiles native modules; subsequent runs reuse the cached volume and are significantly faster.
 
 ---
 
