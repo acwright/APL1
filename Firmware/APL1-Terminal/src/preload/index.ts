@@ -4,13 +4,12 @@ import type {
   PortInfo,
   AppSettings,
   SerialStatus,
-  PhosphorColor,
-  ProgramEntry
+  PhosphorColor
 } from '../shared/types'
 import { IPC } from '../shared/types'
 
 // Re-export types so renderer env.d.ts can import from here
-export type { PortInfo, AppSettings, SerialStatus, PhosphorColor, ProgramEntry }
+export type { PortInfo, AppSettings, SerialStatus, PhosphorColor }
 
 /**
  * The API surface exposed to the renderer via contextBridge.
@@ -99,19 +98,6 @@ const api = {
 
     /** Host operating system. */
     platform: process.platform as NodeJS.Platform
-  },
-
-  software: {
-    /** Load the list of bundled programs from software/manifest.json. */
-    getManifest: (): Promise<ProgramEntry[]> =>
-      ipcRenderer.invoke(IPC.SOFTWARE_GET_MANIFEST),
-
-    /**
-     * Read the raw text content of a bundled program file.
-     * `filename` must be a plain filename (no path separators).
-     */
-    readFile: (filename: string): Promise<string> =>
-      ipcRenderer.invoke(IPC.SOFTWARE_READ_FILE, filename)
   }
 }
 

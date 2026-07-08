@@ -2,15 +2,13 @@
   ProgramSelect.vue
   Overlay panel for loading and paced-sending Wozmon programs.
 
-  Three input modes selectable via tabs:
-    1. Library — pick from bundled manifest programs
-    2. File    — browse for a local Wozmon .txt / .woz file
-    3. Paste   — paste Wozmon hex lines directly into a text area
+  Two input modes selectable via tabs:
+    1. File  — browse for a local Wozmon .txt / .woz file
+    2. Paste — paste Wozmon hex lines directly into a text area
 
-  All three modes share the same paced-send engine and progress indicator.
-  The File and Paste modes auto-detect the program start address from the
-  first "XXXX:" line in the content and show a Wozmon run-command hint
-  (e.g. "0280R").
+  Both modes share the same paced-send engine and progress indicator.
+  Both modes auto-detect the program start address from the first "XXXX:"
+  line in the content and show a Wozmon run-command hint (e.g. "0280R").
 
   Strips comment lines (starting with ;) and blank lines before sending.
   Each line is sent character-by-character (uppercase + bit7), then an Enter
@@ -41,34 +39,8 @@
       <!-- Body -->
       <div class="ps-body">
 
-        <!-- ── Library tab ──────────────────────────────────────── -->
-        <template v-if="activeTab === 'library'">
-          <div class="ps-field">
-            <label class="ps-label">PROGRAM</label>
-            <select
-              v-model="selectedFilename"
-              class="ps-select"
-              :disabled="isSending || programs.length === 0"
-            >
-              <option value="" disabled>— select program —</option>
-              <option
-                v-for="p in sortedPrograms"
-                :key="p.filename"
-                :value="p.filename"
-              >{{ p.name }}</option>
-            </select>
-          </div>
-
-          <div v-if="selectedProgram" class="ps-desc">
-            <span v-if="selectedProgram.description">{{ selectedProgram.description }}</span>
-            <span v-if="selectedProgram.runCommand" class="ps-run-cmd">
-              Run: <code>{{ selectedProgram.runCommand }}</code>
-            </span>
-          </div>
-        </template>
-
         <!-- ── File tab ─────────────────────────────────────────── -->
-        <template v-else-if="activeTab === 'file'">
+        <template v-if="activeTab === 'file'">
           <div class="ps-field">
             <label class="ps-label">FILE</label>
             <div class="ps-file-row">
@@ -151,15 +123,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import type { ProgramEntry, SerialStatus } from '../../../shared/types'
+import { ref, computed } from 'vue'
+import type { SerialStatus } from '../../../shared/types'
 
-type TabId = 'library' | 'file' | 'paste'
+type TabId = 'file' | 'paste'
 
 const tabs: { id: TabId; label: string }[] = [
-  { id: 'library', label: 'LIBRARY' },
-  { id: 'file',    label: 'FILE' },
-  { id: 'paste',   label: 'PASTE' }
+  { id: 'file',  label: 'FILE' },
+  { id: 'paste', label: 'PASTE' }
 ]
 
 const props = defineProps<{
@@ -175,16 +146,12 @@ const emit = defineEmits<{
 // ── State ─────────────────────────────────────────────────────────────────────
 
 // Shared
-const activeTab = ref<TabId>('library')
+const activeTab = ref<TabId>('file')
 const isSending = ref(false)
 const sendDone = ref(false)
 const progress = ref(0)
 const errorMsg = ref('')
 let cancelFlag = false
-
-// Library tab
-const programs = ref<ProgramEntry[]>([])
-const selectedFilename = ref('')
 
 // File tab
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -196,33 +163,13 @@ const pasteContent = ref('')
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 
-const sortedPrograms = computed<ProgramEntry[]>(() =>
-  [...programs.value].sort((a, b) => a.name.localeCompare(b.name))
-)
-
-const selectedProgram = computed<ProgramEntry | undefined>(() =>
-  programs.value.find((p) => p.filename === selectedFilename.value)
-)
-
 const fileRunCommand = computed(() => detectRunCommand(fileContent.value))
 const pasteRunCommand = computed(() => detectRunCommand(pasteContent.value))
 
 const canSend = computed(() => {
   if (isSending.value || props.serialStatus !== 'connected') return false
-  if (activeTab.value === 'library') return !!selectedFilename.value
   if (activeTab.value === 'file') return !!fileContent.value
   return pasteContent.value.trim().length > 0
-})
-
-// ── Lifecycle ─────────────────────────────────────────────────────────────────
-
-onMounted(async () => {
-  try {
-    programs.value = await window.api.software.getManifest()
-  } catch (err) {
-    errorMsg.value = 'Failed to load program list'
-    console.error('[ProgramSelect] manifest load error:', err)
-  }
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -314,20 +261,7 @@ function onFileSelected(event: Event): void {
 async function startSend(): Promise<void> {
   if (!canSend.value) return
 
-  let content: string
-  if (activeTab.value === 'library') {
-    try {
-      content = await window.api.software.readFile(selectedFilename.value)
-    } catch (err) {
-      errorMsg.value = `Failed to load program: ${err instanceof Error ? err.message : String(err)}`
-      return
-    }
-  } else if (activeTab.value === 'file') {
-    content = fileContent.value
-  } else {
-    content = pasteContent.value
-  }
-
+  const content = activeTab.value === 'file' ? fileContent.value : pasteContent.value
   await sendContent(content)
 }
 

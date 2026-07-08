@@ -8,7 +8,6 @@ directories:
 
 files:
   - out/**/*
-  - software/**/*
 
 mac:
   target:

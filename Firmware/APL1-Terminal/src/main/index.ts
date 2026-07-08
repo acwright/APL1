@@ -1,9 +1,7 @@
 import { app, BrowserWindow, shell, ipcMain } from 'electron'
-import { join, basename } from 'path'
-import { readFile } from 'fs/promises'
+import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { IPC } from '../shared/types'
-import type { ProgramEntry } from '../shared/types'
 import { SerialService } from './serial'
 import { SettingsService } from './settings'
 
@@ -78,31 +76,6 @@ ipcMain.handle(IPC.SERIAL_SEND, (_event, data: Uint8Array) => {
 })
 
 ipcMain.handle(IPC.SETTINGS_GET, () => settingsService?.get())
-
-// ---------------------------------------------------------------------------
-// IPC handlers — software / program loader
-// ---------------------------------------------------------------------------
-
-function getSoftwareDir(): string {
-  return join(app.getAppPath(), 'software')
-}
-
-ipcMain.handle(IPC.SOFTWARE_GET_MANIFEST, async (): Promise<ProgramEntry[]> => {
-  const manifestPath = join(getSoftwareDir(), 'manifest.json')
-  const raw = await readFile(manifestPath, 'utf-8')
-  const data = JSON.parse(raw) as { programs: ProgramEntry[] }
-  return data.programs
-})
-
-ipcMain.handle(IPC.SOFTWARE_READ_FILE, async (_event, filename: string): Promise<string> => {
-  // Reject any path traversal attempts
-  const safe = basename(filename)
-  if (!safe || safe !== filename || safe.includes('..')) {
-    throw new Error('Invalid filename')
-  }
-  const filePath = join(getSoftwareDir(), safe)
-  return readFile(filePath, 'utf-8')
-})
 
 ipcMain.handle(IPC.SETTINGS_SET, (_event, partial: Parameters<SettingsService['set']>[0]) => {
   settingsService?.set(partial)

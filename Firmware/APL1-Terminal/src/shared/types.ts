@@ -39,18 +39,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
 export type SerialStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 
-/** A single entry from the software manifest. */
-export interface ProgramEntry {
-  /** Display name shown in the UI dropdown. */
-  name: string
-  /** Filename inside the `software/` folder (e.g. "hello_world.txt"). */
-  filename: string
-  /** Optional one-line description shown below the dropdown. */
-  description?: string
-  /** Wozmon command to run the program after loading (e.g. "0280R"). */
-  runCommand?: string
-}
-
 /** IPC channel name constants shared between main and preload. */
 export const IPC = {
   SERIAL_LIST_PORTS: 'serial:listPorts',
@@ -64,7 +52,5 @@ export const IPC = {
   APP_GET_VERSION: 'app:getVersion',
   WINDOW_TOGGLE_FULLSCREEN: 'window:toggleFullscreen',
   WINDOW_IS_FULLSCREEN: 'window:isFullscreen',
-  WINDOW_FULLSCREEN_CHANGED: 'window:fullscreenChanged',
-  SOFTWARE_GET_MANIFEST: 'software:getManifest',
-  SOFTWARE_READ_FILE: 'software:readFile'
+  WINDOW_FULLSCREEN_CHANGED: 'window:fullscreenChanged'
 } as const

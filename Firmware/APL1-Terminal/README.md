@@ -14,7 +14,7 @@ An [Electron](https://www.electronjs.org/) + [Vue 3](https://vuejs.org/) app tha
 - **CRT effects** — phosphor glow, scanlines overlay, and screen flicker (individually toggleable)
 - **Serial connection** — auto-discovers ports; connects at 115200 8N1
 - **Keyboard input** — keystrokes forwarded to the APL1 with Apple 1 control shortcuts
-- **Program loader** — paced sending of Wozmon programs via three input modes: bundled library, local file upload, or pasted text; configurable per-character and per-line delays
+- **Program loader** — paced sending of Wozmon programs via two input modes: local file upload or pasted text; configurable per-character and per-line delays
 - **Persistent settings** — port selection, display options, and pacing delays saved across sessions
 
 ---
@@ -33,46 +33,14 @@ An [Electron](https://www.electronjs.org/) + [Vue 3](https://vuejs.org/) app tha
 
 ## Send Program Panel
 
-The Send Program panel is opened by clicking the SEND button on the monitor control panel. It provides three tabs for loading Wozmon programs:
+The Send Program panel is opened by clicking the SEND button on the monitor control panel. It provides two tabs for loading Wozmon programs:
 
 | Tab | Description |
 |-----|-------------|
-| **Library** | Pick from the bundled program catalog. Shows program name, description, and the Wozmon run command. |
 | **File** | Browse for a local Wozmon-formatted `.txt` or `.woz` file. The first `XXXX:` address in the file is detected automatically and shown as a run command hint (e.g. `0280R`). |
 | **Paste** | Paste Wozmon hex lines directly into a text area. The start address is detected in real time from the pasted content and shown as a run command hint. |
 
-All three tabs share the same paced-send engine (configurable per-character and per-line delays), the same progress bar, and the SEND / CANCEL controls. Comment lines beginning with `;` and blank lines are stripped before sending. Each line is transmitted character-by-character with bit 7 set, followed by a carriage return (0x8D).
-
----
-
-## Bundled Programs
-
-The `software/` folder contains 20 Wozmon-compatible programs loadable via the Send Program panel:
-
-| Program | Description |
-|---------|-------------|
-| 15 Puzzle | Classic 4×4 sliding tile puzzle |
-| Apple 30th | Graphics demo celebrating Apple's 30th anniversary |
-| Applesoft BASIC | Applesoft BASIC interpreter |
-| Blackjack | Casino-style Blackjack |
-| Cellular Automaton | Configurable 1D cellular automaton visualizer |
-| Checkers | Two-player checkers running on Integer BASIC |
-| Hamurabi | Govern ancient Sumeria over 10 years |
-| Hello | Prints HELLO, APPLE I! |
-| Life | Conway's Game of Life |
-| Little Tower | Text adventure game |
-| Lunar Lander | Land your rocket before fuel runs out |
-| Matrix | Scrolling matrix rain effect |
-| Microchess | Chess against a 6502 AI |
-| Shut the Box | Classic dice-and-tiles pub game |
-| Slots | Single-armed bandit slot machine |
-| Star Trek | Classic Star Trek strategy game |
-| Star Trek 2003 | Updated Star Trek variant |
-| Volksforth | Forth interpreter for the 6502 |
-| Wumpus | Hunt the Wumpus text adventure |
-| — | (additional titles may be present in software/) |
-
-Programs are loaded from `software/manifest.json`, which maps filenames to display names, descriptions, and optional Wozmon run commands.
+Both tabs share the same paced-send engine (configurable per-character and per-line delays), the same progress bar, and the SEND / CANCEL controls. Comment lines beginning with `;` and blank lines are stripped before sending. Each line is transmitted character-by-character with bit 7 set, followed by a carriage return (0x8D).
 
 ---
 
@@ -163,7 +131,7 @@ APL1-Terminal/
 │   │   ├── serial.ts        # SerialService — serial port management (115200 8N1)
 │   │   └── settings.ts      # SettingsService — persistent settings via JSON
 │   ├── preload/
-│   │   └── index.ts         # Context bridge — exposes api.serial and api.settings to renderer
+│   │   └── index.ts         # Context bridge — exposes api.serial, api.settings, api.window, and api.app to renderer
 │   ├── renderer/src/
 │   │   ├── App.vue           # Root component — keyboard handling, overlay management
 │   │   ├── components/
@@ -181,9 +149,6 @@ APL1-Terminal/
 │   │       └── signetics2513.ts  # Signetics 2513 character ROM (64 glyphs, 5×7 px)
 │   └── shared/
 │       └── types.ts          # Shared types and IPC channel constants
-├── software/
-│   ├── manifest.json         # Program catalog (name, filename, description, run command)
-│   └── *.woz                 # Wozmon hex program files
 ├── electron-builder.yml      # Distribution build configuration
 ├── electron.vite.config.ts   # electron-vite build configuration
 └── package.json
@@ -209,17 +174,22 @@ Settings are persisted to `<userData>/settings.json` and restored on next launch
 
 ## Changelog
 
+### 1.2.0 — 2026-07-07
+
+- **Removed built-in software library** — the bundled program catalog (Library tab and `software/` folder) has been removed in preparation for a future online repository and API.
+- Send Program panel now has two tabs (File / Paste) instead of three.
+
 ### 1.1.0 — 2026-07-06
 
 - **Send Program — File tab**: browse for any local Wozmon-formatted `.txt` or `.woz` file and send it with the paced-send engine.
 - **Send Program — Paste tab**: paste Wozmon hex lines directly into a text area for immediate sending.
 - **Auto run-command detection**: the File and Paste tabs scan the program content for the first `XXXX:` address line and display a Wozmon run-command hint (e.g. `0280R`) automatically.
-- Send Program panel redesigned with a three-tab layout (Library / File / Paste); all tabs share the progress bar, SEND/CANCEL controls, and not-connected warning.
+- Send Program panel redesigned with a two-tab layout (File / Paste); both tabs share the progress bar, SEND/CANCEL controls, and not-connected warning.
 
 ### 1.0.0 — Initial release
 
 - 40×24 CRT terminal with Signetics 2513 ROM glyphs.
 - Phosphor color selector (white, amber, green) and CRT effects (glow, scanlines, flicker).
 - Serial connection at 115200 8N1 with auto port discovery.
-- Bundled library of 20 Wozmon programs with paced sending.
+- Bundled library of 20 Wozmon programs with paced sending via Send Program panel.
 - Persistent settings saved across sessions.
